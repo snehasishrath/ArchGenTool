@@ -69,14 +69,30 @@ stages:
                 docs/**
               TargetFolder: $(Build.ArtifactStagingDirectory)/site
 
-          - task: ArchiveFiles@2
-            displayName: Create deployment package
-            inputs:
-              rootFolderOrFile: $(Build.ArtifactStagingDirectory)/site
-              includeRootFolder: false
-              archiveType: zip
-              archiveFile: $(Build.ArtifactStagingDirectory)/archway.zip
-              replaceExistingArchive: true
+          - script: |
+              python3 - <<'PY'
+              from pathlib import Path
+              from zipfile import ZIP_DEFLATED, ZipFile
+
+              source = Path("$(Build.ArtifactStagingDirectory)/site")
+              package = Path("$(Build.ArtifactStagingDirectory)/archway.zip")
+              if not source.is_dir():
+                  raise SystemExit(f"Staged application directory not found: {source}")
+
+              with ZipFile(package, "w", compression=ZIP_DEFLATED) as archive:
+                  for path in source.rglob("*"):
+                      if path.is_file():
+                          archive.write(path, path.relative_to(source))
+
+              with ZipFile(package) as archive:
+                  names = set(archive.namelist())
+                  required = {"index.html", "app.js", "styles.css", "server.js", "package.json"}
+                  missing = required - names
+                  if missing:
+                      raise SystemExit(f"Deployment package is missing required files: {sorted(missing)}")
+
+              print(f"Created {package} with {len(names)} files.")
+            displayName: Create and verify deployment package
 
           - publish: $(Build.ArtifactStagingDirectory)/archway.zip
             artifact: drop
