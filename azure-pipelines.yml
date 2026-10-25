@@ -4,7 +4,7 @@ trigger:
       - main
 
 pool:
-  vmImage: ubuntu-latest
+  name: local
 
 variables:
   nodeVersion: '20.x'
