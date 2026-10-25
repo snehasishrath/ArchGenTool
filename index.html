@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0d1220">
+  <title>Archway — Architecture studio</title>
+  <meta name="description" content="Turn business requirements into customizable, exportable cloud architecture designs.">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="login-screen" id="login-screen">
+    <section class="login-card" aria-labelledby="login-title">
+      <a class="brand login-brand" href="#" aria-label="Archway home">
+        <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+        <span>archway<span class="brand-period">.</span></span>
+      </a>
+      <p class="login-eyebrow">ARCHITECTURE WORKSPACE</p>
+      <h1 id="login-title">Welcome back</h1>
+      <p class="login-intro">Sign in to continue to your architecture studio.</p>
+
+      <form id="local-login-form" class="local-login-form">
+        <label for="local-display-name">Your name</label>
+        <input id="local-display-name" name="displayName" type="text" autocomplete="name" maxlength="60" placeholder="e.g. Alex Morgan" required>
+        <button class="button button-primary login-submit" type="submit">Continue with local demo <span aria-hidden="true">→</span></button>
+      </form>
+      <p class="demo-warning"><span aria-hidden="true">ⓘ</span> Demo access only. This standalone app does not validate accounts or protect local designs. Do not enter passwords or sensitive data.</p>
+
+      <div class="login-divider"><span>OR</span></div>
+      <button class="button entra-login-button" type="button" id="entra-login-button"><span class="entra-logo" aria-hidden="true"><i></i><i></i><i></i><i></i></span> Sign in with Microsoft Entra ID</button>
+      <p class="entra-status" id="entra-status" role="status" aria-live="polite"></p>
+      <p class="entra-admin-setup-note">To configure Entra ID for this standalone app, enter the local demo and open Admin &amp; settings. Local demo access is not a privileged or secured administrator account.</p>
+
+      <p class="login-footer">Sign-in does not sync, encrypt, or account-isolate designs. They remain in this browser; avoid shared devices for sensitive work.</p>
+    </section>
+  </main>
+
+  <div class="app-shell hidden" id="app-shell">
+    <aside class="sidebar" aria-label="Main navigation">
+      <a class="brand" href="#" aria-label="Archway home">
+        <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+        <span>archway<span class="brand-period">.</span></span>
+      </a>
+
+      <div class="workspace-switcher">
+        <span class="workspace-avatar">N</span>
+        <span class="workspace-copy"><strong>Northstar Studio</strong><small>Enterprise workspace</small></span>
+        <span class="switcher-caret" aria-hidden="true">⌄</span>
+      </div>
+
+      <p class="sidebar-label">WORKSPACE</p>
+      <nav class="main-nav">
+        <a class="nav-link active" href="#design"><span class="nav-icon" aria-hidden="true">◈</span> Architecture studio</a>
+        <a class="nav-link" href="#design"><span class="nav-icon grid-icon" aria-hidden="true">▦</span> Design library <span class="nav-count">4</span></a>
+        <a class="nav-link" href="#design"><span class="nav-icon" aria-hidden="true">⌘</span> Components</a>
+        <button class="nav-link admin-nav-link" id="admin-panel-open" type="button"><span class="nav-icon" aria-hidden="true">⚙</span> Admin &amp; settings</button>
+      </nav>
+
+      <p class="sidebar-label recent-label">RECENT DESIGNS <button class="tiny-add" id="new-design" aria-label="Start a new design">+</button></p>
+      <nav class="recent-nav" aria-label="Recent designs">
+        <a class="recent-link selected" href="#design"><span class="recent-dot dot-violet"></span> Commerce platform</a>
+        <a class="recent-link" href="#design"><span class="recent-dot dot-blue"></span> Customer data hub</a>
+        <a class="recent-link" href="#design"><span class="recent-dot dot-mint"></span> ML inference service</a>
+        <a class="recent-link" href="#design"><span class="recent-dot dot-orange"></span> IoT telemetry</a>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <div class="help-card">
+          <span class="help-icon" aria-hidden="true">✳</span>
+          <strong>Make your next design</strong>
+          <p>Start with a business problem. Build something great.</p>
+          <a href="#requirement">Explore the studio <span aria-hidden="true">→</span></a>
+        </div>
+        <button class="profile-button" id="profile-sign-out" type="button" aria-label="Sign out">
+          <span class="profile-avatar" id="profile-avatar">SR</span>
+          <span class="profile-copy"><strong id="profile-name">Snehasish Rath</strong><small id="profile-role">Solution architect</small></span>
+          <span class="profile-menu" aria-hidden="true">···</span>
+        </button>
+      </div>
+    </aside>
+
+    <main class="main-content" id="design">
+      <header class="topbar">
+        <div class="breadcrumbs"><span>Workspace</span><span class="breadcrumb-slash">/</span><strong>Architecture studio</strong></div>
+        <div class="topbar-actions">
+          <span class="saved-state"><span class="saved-dot"></span><span id="saved-label">Saved in this browser</span></span>
+          <span class="account-label" id="account-label"></span>
+          <button class="button button-export sign-out-button" type="button" id="sign-out-button">Sign out</button>
+          <button class="icon-button" id="share-button" aria-label="Share design" title="Share design">↗</button>
+          <div class="resources-menu-wrap">
+            <button class="button button-export" id="resources-menu-button" type="button" aria-label="Resources" aria-haspopup="menu" aria-expanded="false"><span aria-hidden="true">▤</span> Resources <span class="button-chevron" aria-hidden="true">⌄</span></button>
+            <div class="resources-menu hidden" id="resources-menu" role="menu" aria-label="Project resources">
+              <button type="button" role="menuitem" data-resource-topic="standards"><span class="export-option-icon" aria-hidden="true">✓</span><span><strong>Architecture standards &amp; best practices</strong><small>Review checklist and reference frameworks</small></span></button>
+              <button type="button" role="menuitem" data-resource-topic="decisions"><span class="export-option-icon" aria-hidden="true">◇</span><span><strong>Decision records</strong><small>Architecture decision log and template</small></span></button>
+              <button type="button" role="menuitem" data-resource-topic="readme"><span class="export-option-icon" aria-hidden="true">▤</span><span><strong>README</strong><small>Project overview and setup</small></span></button>
+              <button type="button" role="menuitem" data-resource-topic="release-notes"><span class="export-option-icon" aria-hidden="true">◷</span><span><strong>Release notes</strong><small>Version history and changes</small></span></button>
+              <button type="button" role="menuitem" data-resource-topic="license"><span class="export-option-icon" aria-hidden="true">©</span><span><strong>Proprietary license</strong><small>Usage and distribution terms</small></span></button>
+            </div>
+          </div>
+          <div class="export-menu-wrap">
+            <button class="button button-export" id="export-menu-button" aria-label="Export" aria-haspopup="menu" aria-expanded="false"><span aria-hidden="true">⇩</span> Export <span class="button-chevron" aria-hidden="true">⌄</span></button>
+            <div class="export-menu hidden" id="export-menu" role="menu" aria-label="Export options">
+              <button type="button" role="menuitem" id="export-svg-button"><span class="export-option-icon" aria-hidden="true">◇</span><span><strong>Export diagram</strong><small>Scalable vector graphic (.svg)</small></span></button>
+              <button type="button" role="menuitem" id="export-markdown-button"><span class="export-option-icon" aria-hidden="true">▤</span><span><strong>Export documentation</strong><small>Architecture specification (.md)</small></span></button>
+              <button type="button" role="menuitem" id="export-pdf-button"><span class="export-option-icon" aria-hidden="true">▤</span><span><strong>Print / save as PDF</strong><small>Print-ready architecture document</small></span></button>
+              <button type="button" role="menuitem" id="export-png-button"><span class="export-option-icon" aria-hidden="true">▧</span><span><strong>Export as PNG</strong><small>High-resolution diagram image (.png)</small></span></button>
+              <button type="button" role="menuitem" id="export-jpg-button"><span class="export-option-icon" aria-hidden="true">▧</span><span><strong>Export as JPG</strong><small>High-resolution diagram image (.jpg)</small></span></button>
+              <button type="button" role="menuitem" id="export-drawio-button"><span class="export-option-icon" aria-hidden="true">◇</span><span><strong>Export for draw.io</strong><small>Editable diagrams.net file (.drawio)</small></span></button>
+              <button type="button" role="menuitem" id="export-json-button"><span class="export-option-icon" aria-hidden="true">{ }</span><span><strong>Export project data</strong><small>Structured architecture file (.json)</small></span></button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <section class="page-heading">
+          <div class="heading-main">
+            <span class="eyebrow"><span class="eyebrow-sparkle" aria-hidden="true">✳</span> ARCHITECTURE DESIGN</span>
+            <h1 id="architecture-title">Commerce platform</h1>
+            <p>Shape a resilient, production-ready architecture from your requirements.</p>
+          </div>
+          <div class="heading-meta">
+            <span class="version-pill"><span class="version-dot"></span> Draft <span class="version-separator">·</span> <span id="app-version">v1.1.0</span></span>
+            <button class="button button-primary" id="generate-button"><span aria-hidden="true">✳</span> Generate design</button>
+          </div>
+        </section>
+
+        <section class="builder-grid" aria-label="Architecture designer">
+          <section class="panel input-panel" id="requirement">
+            <details class="input-section" open>
+              <summary class="panel-heading collapse-summary" aria-controls="requirement-content">
+                <span><span class="step-number">01</span><span class="section-heading-copy"><strong>Describe your solution</strong><small>Business requirement</small></span></span>
+                <span class="collapse-indicator" aria-hidden="true"></span>
+              </summary>
+              <div class="input-section-content" id="requirement-content">
+                <label class="visually-hidden" for="requirement-input">Business requirement</label>
+                <div class="textarea-wrap">
+                  <textarea id="requirement-input" rows="6" placeholder="Describe the problem, users, and what success looks like...">Build a global ecommerce platform with personalized product recommendations, secure checkout, and real-time inventory. Support seasonal traffic spikes and 99.95% availability.</textarea>
+                  <span class="textarea-hint">⌘ ↵ to generate</span>
+                </div>
+                <button class="button template-library-button" type="button" id="open-templates"><span aria-hidden="true">▦</span> Browse architecture templates <span class="template-count" id="template-count">10</span></button>
+                <div class="suggestion-row"><span class="suggestion-label">TRY</span>
+                  <button class="suggestion-chip" data-prompt="Create a secure customer data platform that unifies customer profiles and analytics for 2 million users.">Customer data platform</button>
+                  <button class="suggestion-chip" data-prompt="Build a scalable AI-powered document processing service with real-time inference and secure storage.">AI document service</button>
+                </div>
+              </div>
+            </details>
+
+            <div class="panel-divider"></div>
+
+            <details class="input-section" open>
+              <summary class="panel-heading panel-heading-compact collapse-summary" aria-controls="configuration-content">
+                <span><span class="step-number">02</span><span class="section-heading-copy"><strong>Configure your design</strong><small>Cloud, regions &amp; workload</small></span></span>
+                <span class="collapse-indicator" aria-hidden="true"></span>
+              </summary>
+              <div class="input-section-content" id="configuration-content">
+                <label class="field-label" for="provider-select">Cloud provider</label>
+                <div class="provider-select-wrap">
+                  <span class="provider-mark" id="provider-mark">A</span>
+                  <select id="provider-select" aria-label="Cloud provider">
+                    <option value="AWS">Amazon Web Services</option>
+                    <option value="Azure">Microsoft Azure</option>
+                    <option value="GCP">Google Cloud</option>
+                  </select>
+                  <span class="select-caret" aria-hidden="true">⌄</span>
+                </div>
+
+                <div class="field-row">
+                  <div class="field-group">
+                    <label class="field-label" for="region-select">Primary region</label>
+                    <div class="select-wrap"><select id="region-select" aria-label="Primary region"></select><span class="select-caret" aria-hidden="true">⌄</span></div>
+                  </div>
+                  <div class="field-group">
+                    <label class="field-label" for="traffic-select">Traffic profile</label>
+                    <div class="select-wrap"><select id="traffic-select" aria-label="Traffic profile">
+                      <option value="moderate">Moderate</option>
+                      <option value="high" selected>High</option>
+                      <option value="variable">Variable / spiky</option>
+                    </select><span class="select-caret" aria-hidden="true">⌄</span></div>
+                  </div>
+                </div>
+                <div class="secondary-region-field" id="secondary-region-field">
+                  <label class="field-label" for="secondary-region-select">Failover region</label>
+                  <div class="select-wrap"><select id="secondary-region-select" aria-label="Failover region"></select><span class="select-caret" aria-hidden="true">⌄</span></div>
+                </div>
+
+                <label class="field-label workload-label" for="workload-select">Workload pattern</label>
+                <div class="select-wrap"><select id="workload-select" aria-label="Workload pattern">
+                  <option value="web">Web application</option>
+                  <option value="data">Data platform</option>
+                  <option value="ai">AI / machine learning</option>
+                  <option value="iot">IoT / event processing</option>
+                </select><span class="select-caret" aria-hidden="true">⌄</span></div>
+
+                <label class="toggle-row" for="multi-region-toggle">
+                  <span class="toggle-copy"><strong>Multi-region resilience</strong><small>Fail over to a secondary region</small></span>
+                  <input id="multi-region-toggle" type="checkbox" role="switch" checked>
+                  <span class="toggle-track" aria-hidden="true"></span>
+                </label>
+
+                <button class="button button-primary generate-wide" id="generate-button-secondary"><span aria-hidden="true">✳</span> Generate architecture <span aria-hidden="true">→</span></button>
+                <p class="local-note"><span aria-hidden="true">◉</span> Design suggestions are generated locally. No API key required.</p>
+              </div>
+            </details>
+          </section>
+
+          <section class="panel canvas-panel" aria-label="Architecture preview">
+            <div class="canvas-toolbar">
+              <div class="view-tabs" role="tablist" aria-label="Architecture views">
+                <button class="view-tab active" id="diagram-tab" role="tab" aria-selected="true" data-view="diagram">Architecture <span class="tab-count">5</span></button>
+                <button class="view-tab" id="components-tab" role="tab" aria-selected="false" data-view="components">Components</button>
+                <button class="view-tab" id="steps-tab" role="tab" aria-selected="false" data-view="steps">Implementation</button>
+              </div>
+              <div class="canvas-tools">
+                <span class="canvas-status"><span class="canvas-status-dot"></span> Design ready</span>
+                <button class="button button-export architecture-edit-button" id="edit-architecture-button" type="button" aria-haspopup="dialog"><span aria-hidden="true">✎</span> Edit design</button>
+                <button class="icon-button canvas-icon-button" id="zoom-button" aria-label="Fit architecture to view" title="Fit to view">⛶</button>
+                <button class="icon-button canvas-icon-button" id="canvas-export-button" aria-label="Export diagram" title="Export diagram">⇩</button>
+              </div>
+            </div>
+
+            <div class="diagram-view" id="diagram-view" role="tabpanel" aria-labelledby="diagram-tab">
+              <details class="canvas-section" id="diagram-details" open>
+                <summary class="diagram-title-row collapse-summary" aria-controls="diagram-details-body">
+                  <span class="diagram-heading-copy"><span class="diagram-kicker">SYSTEM DESIGN <span class="diagram-kicker-dot">·</span> <span id="diagram-provider">AWS</span></span><span class="diagram-main-title" id="diagram-title">Commerce, built to scale</span></span>
+                  <span class="diagram-heading-actions"><span class="diagram-badge"><span class="badge-check">✓</span> Draft · review recommended</span><span class="collapse-indicator" aria-hidden="true"></span></span>
+                </summary>
+                <div class="diagram-details-body" id="diagram-details-body">
+                  <p class="diagram-scroll-hint"><span aria-hidden="true">↓</span> Follow the architecture top to bottom. Scroll horizontally to inspect every service and connection.</p>
+                  <div class="diagram-scroll" id="diagram-container" tabindex="0" role="region" aria-label="Scrollable cloud architecture diagram"></div>
+                  <div class="diagram-legend"><span><i class="legend-square legend-edge"></i> Edge &amp; networking</span><span><i class="legend-square legend-compute"></i> Compute</span><span><i class="legend-square legend-data"></i> Data &amp; storage</span><span><i class="legend-square legend-security"></i> Security controls</span><span><i class="legend-square legend-integration"></i> SaaS / partner integration</span><span class="legend-flow"><i></i> Encrypted request / event flow</span></div>
+                  <div class="diagram-caption"><span class="caption-spark" aria-hidden="true">✳</span><span id="diagram-caption">Requests pass through edge security to a private network; asynchronous events connect the data tier to secure payment, tax and shipping integrations.</span></div>
+                </div>
+              </details>
+            </div>
+
+            <div class="components-view hidden" id="components-view" role="tabpanel" aria-labelledby="components-tab"></div>
+            <div class="steps-view hidden" id="steps-view" role="tabpanel" aria-labelledby="steps-tab"></div>
+
+            <div class="canvas-footer">
+              <div class="last-edited"><span class="editor-avatar">SR</span><span>Designed by <strong>Snehasish Rath</strong></span><span class="footer-dot">·</span><span id="updated-time">Just now</span></div>
+              <button class="text-action" id="edit-assumptions">Edit assumptions <span aria-hidden="true">→</span></button>
+            </div>
+          </section>
+
+          <aside class="panel insights-panel" aria-label="Design insights">
+            <details class="insights-disclosure" open>
+              <summary class="insights-heading collapse-summary" aria-controls="insights-content"><span><span class="insights-spark" aria-hidden="true">✳</span><span class="insights-title">Design insights</span></span><span class="collapse-indicator" aria-hidden="true"></span></summary>
+              <div class="insights-content" id="insights-content">
+            <p class="insights-subtitle">A quick read on your architecture.</p>
+
+            <div class="cost-card">
+              <span class="cost-label">ESTIMATED MONTHLY COST</span>
+              <div class="cost-amount"><span>$</span><strong id="cost-value">4,280</strong><span class="cost-period">/ month</span></div>
+              <span class="cost-range" id="cost-range">Typical range: $3,400 – $5,700</span>
+              <div class="cost-bar"><span id="cost-bar-fill"></span></div>
+              <span class="cost-footnote">USD · Production, estimated usage</span>
+            </div>
+
+            <div class="metric-row" aria-label="Architecture metrics">
+              <div class="metric-card"><span class="metric-icon availability-icon" aria-hidden="true">↗</span><span class="metric-label">DESIGN TARGET</span><strong id="availability-value">99.95%</strong><small id="availability-detail">Multi-region failover</small></div>
+              <div class="metric-card"><span class="metric-icon scale-icon" aria-hidden="true">⌁</span><span class="metric-label">SCALABILITY</span><strong id="scalability-value">High</strong><small id="scalability-detail">Autoscaling enabled</small></div>
+            </div>
+
+            <div class="insight-section">
+              <div class="section-title-row"><h3>Security controls</h3><span class="count-badge">4</span></div>
+              <ul class="control-list" id="security-controls"></ul>
+            </div>
+
+            <div class="insight-section tech-section">
+              <div class="section-title-row"><h3>Technology stack</h3><button class="text-action mini-action" id="tech-view-button">Details <span aria-hidden="true">→</span></button></div>
+              <div class="tech-pills" id="technology-stack"></div>
+            </div>
+
+            <button class="cost-details-button" id="cost-details-button"><span class="cost-detail-icon" aria-hidden="true">▤</span><span><strong>Cost breakdown</strong><small>View service-level estimates</small></span><span class="cost-details-arrow" aria-hidden="true">→</span></button>
+              </div>
+            </details>
+          </aside>
+        </section>
+
+        <section class="bottom-grid">
+          <article class="panel rationale-panel">
+            <div class="bottom-heading"><div><span class="bottom-heading-icon rationale-icon" aria-hidden="true">✳</span><div><h2>Architecture rationale</h2><p>Why these building blocks fit your needs</p></div></div><span class="bottom-heading-actions"><button class="text-action" id="rationale-toggle">View all <span aria-hidden="true">→</span></button><button class="section-collapse-button" type="button" data-collapse-target="rationale-content" aria-controls="rationale-content" aria-expanded="true" aria-label="Collapse architecture rationale"><span aria-hidden="true">⌃</span></button></span></div>
+            <div id="rationale-content">
+            <div class="rationale-list" id="rationale-list"></div>
+            </div>
+          </article>
+          <article class="panel cost-breakdown-panel" id="cost-breakdown-panel">
+            <div class="bottom-heading"><div><span class="bottom-heading-icon cost-icon" aria-hidden="true">▤</span><div><h2>Estimated monthly cost</h2><p>Planning estimate · USD</p></div></div><span class="bottom-heading-actions"><span class="estimate-period">PER MONTH</span><button class="section-collapse-button" type="button" data-collapse-target="cost-details-content" aria-controls="cost-details-content" aria-expanded="true" aria-label="Collapse estimated monthly cost breakdown"><span aria-hidden="true">⌃</span></button></span></div>
+            <div id="cost-details-content">
+            <div class="cost-breakdown-list" id="cost-breakdown-list"></div>
+            <div class="cost-breakdown-footer"><span>Estimated total</span><strong id="cost-total">$4,280 <small>/ month</small></strong></div>
+            </div>
+          </article>
+        </section>
+
+        <footer class="page-footer"><span>Archway Studio <span class="footer-dot">·</span> Architecture is a starting point, not a substitute for a production review.</span><span><button type="button" data-resource-topic="readme">Documentation</button><span class="footer-dot">·</span><button id="assumptions-button">Estimation assumptions</button></span></footer>
+      </div>
+    </main>
+  </div>
+
+  <dialog class="resources-dialog" id="resources-dialog" aria-labelledby="resources-dialog-title">
+    <div class="resources-dialog-header">
+      <div><span class="eyebrow">ARCHITECTURE GOVERNANCE</span><h2 id="resources-dialog-title">Architecture standards &amp; best practices</h2><p id="resources-dialog-intro">Use these prompts as design and review guidance, not as a claim of compliance or certification.</p></div>
+      <button class="icon-button" type="button" id="resources-dialog-close" aria-label="Close resources">×</button>
+    </div>
+    <section class="resources-topic" id="standards-topic">
+      <p>Apply the controls that fit the workload, data classification, and organization policy. Record exceptions and owners before production approval.</p>
+      <h3>Architecture review checklist</h3>
+      <ul>
+        <li><strong>Business and quality goals:</strong> document user journeys, service boundaries, SLOs, latency, availability, recovery, and data-residency constraints.</li>
+        <li><strong>Security and identity:</strong> use least-privilege identities, strong user authentication, private service access where appropriate, encryption in transit and at rest, managed secrets, and auditable key rotation.</li>
+        <li><strong>Network and data:</strong> define trust boundaries, ingress/egress paths, segmentation, protocols, data classification, retention, deletion, and partner integration controls.</li>
+        <li><strong>Resilience:</strong> identify failure domains and dependencies; set measurable RTO/RPO; design backups, restore tests, failover, and graceful degradation.</li>
+        <li><strong>Operations:</strong> define ownership, telemetry, actionable alerts, incident runbooks, patching, vulnerability response, and deployment/rollback strategy.</li>
+        <li><strong>Scalability and cost:</strong> validate capacity and quotas with representative load; model peak demand, egress, backups, support, and lifecycle costs.</li>
+        <li><strong>Governance:</strong> tag resources, apply policy-as-code and configuration baselines, track risks and exceptions, and schedule reassessment.</li>
+      </ul>
+      <h3>Reference frameworks</h3>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/wellarchitected/latest/framework/welcome.html" target="_blank" rel="noopener">AWS Well-Architected Framework</a>, <a href="https://learn.microsoft.com/azure/well-architected/" target="_blank" rel="noopener">Azure Well-Architected Framework</a>, and <a href="https://cloud.google.com/architecture/framework" target="_blank" rel="noopener">Google Cloud Architecture Framework</a> for provider-specific review pillars.</li>
+        <li><a href="https://www.nist.gov/cyberframework" target="_blank" rel="noopener">NIST Cybersecurity Framework</a> and <a href="https://www.cisecurity.org/cis-benchmarks" target="_blank" rel="noopener">CIS Benchmarks</a> for security outcomes and configuration baselines.</li>
+        <li><a href="https://owasp.org/www-project-application-security-verification-standard/" target="_blank" rel="noopener">OWASP Application Security Verification Standard</a> for application and API security; use the applicable standard for the workload and regulatory environment.</li>
+      </ul>
+      <p class="resources-disclaimer">Framework names are references only. This tool is not affiliated with or endorsed by their publishers and does not determine compliance. Service availability, controls, and requirements must be verified for the selected environment.</p>
+      <a class="text-action" href="docs/ARCHITECTURE-STANDARDS.md" target="_blank" rel="noopener">Read the full standards guide</a>
+    </section>
+    <section class="resources-topic hidden" id="decisions-topic">
+      <p>Decision records capture context, alternatives, consequences, and review triggers. The initial records below document this tool; add architecture-specific records for each production design.</p>
+      <article class="decision-record"><h3>ADR-0001 · Standalone browser-based workspace</h3><p><strong>Status:</strong> Accepted · <strong>Date:</strong> 2026-10-25</p><p><strong>Decision:</strong> Keep the studio client-side and dependency-light; save drafts and settings in the current browser.</p><p><strong>Consequences:</strong> Easy to run and export, but there is no server-side authorization, account isolation, shared workspace, or encrypted persistence. Do not store sensitive designs here.</p></article>
+      <article class="decision-record"><h3>ADR-0002 · Provider-aware architecture recommendations</h3><p><strong>Status:</strong> Accepted · <strong>Date:</strong> 2026-10-25</p><p><strong>Decision:</strong> Generate provider-specific AWS, Azure, and GCP building blocks from workload and deployment selections.</p><p><strong>Consequences:</strong> Designs are planning aids, not validated deployments. Verify region support, service behavior, SKUs, quotas, security, and costs with the provider and delivery team.</p></article>
+      <article class="decision-record"><h3>ADR-0003 · SVG source diagram and portable exports</h3><p><strong>Status:</strong> Accepted · <strong>Date:</strong> 2026-10-25</p><p><strong>Decision:</strong> Render the diagram as SVG and derive image, print, editable draw.io, and structured JSON exports from current design state.</p><p><strong>Consequences:</strong> Exports remain portable and editable, while PDF creation depends on the browser print-to-PDF workflow.</p></article>
+      <article class="decision-record"><h3>ADR-0004 · Node.js static hosting for Azure App Service</h3><p><strong>Status:</strong> Accepted · <strong>Date:</strong> 2026-10-25</p><p><strong>Decision:</strong> Use a dependency-free Node.js HTTP server to serve an explicit allowlist of application and documentation files, bind to App Service's <code>PORT</code>, and expose <code>/healthz</code>.</p><p><strong>Consequences:</strong> The same client-side app can run in Azure App Service Linux Node.js 20/22 without a build step. Hosting does not add server-side identity, authorization, tenant isolation, or shared design storage.</p></article>
+      <h3>Decision record template</h3>
+      <pre class="decision-template"># ADR-NNNN: Decision title
+Status: Proposed | Accepted | Superseded
+Date: YYYY-MM-DD
+
+## Context
+Problem, constraints, requirements, and drivers.
+## Decision
+Chosen approach and rationale.
+## Alternatives considered
+Options and reasons rejected.
+## Consequences
+Benefits, trade-offs, risks, and follow-up actions.
+## Review triggers
+Events or dates that should reopen this decision.</pre>
+      <a class="text-action" href="docs/DECISION-RECORDS.md" target="_blank" rel="noopener">Read the full decision log and template</a>
+    </section>
+    <section class="resources-topic hidden" id="readme-topic">
+      <h3>Archway Studio · Version 1.1.0</h3>
+      <p>Archway Studio is a browser-based technical architecture design tool. Describe a business requirement, select AWS, Azure, or Google Cloud, then review and customize a layered architecture, deployment guidance, security controls, scalability considerations, cost estimates, and implementation steps.</p>
+      <h3>Run the application</h3>
+      <ol>
+        <li>For local Node.js hosting, use Node.js 20 or 22 and run <code>npm start</code>, then open <code>http://localhost:8080</code>. The server honors <code>PORT</code> and provides <code>/healthz</code>. You can also open <code>index.html</code> directly.</li>
+        <li>Continue with the local demo to open the workspace.</li>
+        <li>Describe a requirement, choose a provider and deployment options, then generate and edit the design.</li>
+      </ol>
+      <h3>Azure App Service</h3>
+      <p>Deploy the project root to a Linux Web App using Node.js 20 or 22. App Service starts the dependency-free server with <code>npm start</code>; set that startup command if it is not detected automatically. It listens on the App Service <code>PORT</code>. Configure App Service health checks to use <code>/healthz</code>. No build, package installation, or package lock file is required.</p>
+      <p>Alternatively, create a ZIP from the project root and deploy it with Azure CLI using <code>az webapp deploy --resource-group &lt;resource-group&gt; --name &lt;app-name&gt; --src-path &lt;zip-file&gt; --type zip</code>.</p>
+      <p>Microsoft Entra ID sign-in requires an app registration, a matching redirect URI, and an HTTPS or localhost origin. Configure it from Admin &amp; settings. The optional browser-based MSAL library is loaded from a CDN.</p>
+      <h3>Features</h3>
+      <ul>
+        <li>AWS, Azure, and Google Cloud recommendations for web, data, AI/ML, and IoT/event workloads.</li>
+        <li>Editable, top-to-bottom diagrams with network boundaries, integrations, and adjustable layer spacing.</li>
+        <li>Technical deployment details, security and resilience guidance, planning-level costs, and implementation steps.</li>
+        <li>Browser-local templates, design drafts, appearance settings, and SVG, PNG, JPG, Markdown, PDF, draw.io, and JSON exports.</li>
+      </ul>
+      <h3>Important limitations</h3>
+      <p>This is a standalone planning tool, not a deployment engine or production architecture approval service. Recommendations, sizing, costs, availability targets, and recovery objectives must be validated against current provider documentation, pricing, quotas, workload tests, and organizational requirements.</p>
+      <p>Local demo access is not authentication or access control. Drafts and settings are stored in the browser and are not encrypted, account-isolated, synchronized, or protected by server-side authorization. Do not store credentials, secrets, regulated data, or sensitive architecture details here.</p>
+    </section>
+    <section class="resources-topic hidden" id="release-notes-topic">
+      <h3>Version 1.1.0 · 2026-10-25</h3>
+      <h3>Added</h3>
+      <ul>
+        <li>Dependency-free Node.js static server compatible with Azure App Service Linux Node.js 20/22.</li>
+        <li>App Service <code>PORT</code> binding, explicit static file allowlist, <code>/healthz</code> health endpoint, and deployment instructions.</li>
+      </ul>
+      <p>App Service hosting serves the client-side application; it does not add server-side authentication, authorization, account isolation, or shared persistence.</p>
+      <h3>Version 1.0.0 · 2026-10-25</h3>
+      <p>First documented Archway Studio release.</p>
+      <h3>Added</h3>
+      <ul>
+        <li>AWS, Azure, and Google Cloud architecture generation for web, data, AI/ML, and IoT/event workloads.</li>
+        <li>Editable architecture components, cloud service recommendations, network boundaries, connections, and integrations.</li>
+        <li>Technical deployment specifications, security controls, resilience considerations, planning cost estimates, and implementation guidance.</li>
+        <li>Browser-local templates, draft persistence, theme settings, and optional Microsoft Entra ID sign-in configuration.</li>
+        <li>SVG, PNG, JPG, Markdown, print-to-PDF, editable draw.io, and JSON exports.</li>
+        <li>Project version display, proprietary license terms, architecture standards guidance, and architecture decision records.</li>
+      </ul>
+      <h3>Limitations</h3>
+      <ul>
+        <li>Designs and estimates are planning aids; validate them with cloud providers and qualified engineering, security, operations, and governance reviewers.</li>
+        <li>The local demo is not an identity system or access-control boundary. Data remains in browser storage.</li>
+        <li>PDF export opens the browser print dialog; choose <strong>Save as PDF</strong> to create a PDF file.</li>
+      </ul>
+    </section>
+    <section class="resources-topic hidden" id="license-topic">
+      <h3>Proprietary Software License · Version 1.1.0</h3>
+      <p>Copyright © 2026 Archway Studio. All rights reserved.</p>
+      <p>This software and its accompanying source code, documentation, and visual assets (the “Software”) are proprietary. No rights are granted except the limited right to run an unmodified copy of the Software for internal evaluation by the person or organization that received it.</p>
+      <p>Without prior written permission from the rights holder, you may not copy, modify, adapt, translate, publish, distribute, sublicense, sell, rent, lease, make the Software available to third parties, or create derivative works from the Software. You may not remove or alter copyright, proprietary, or license notices.</p>
+      <p>The Software is provided “AS IS”, without warranties or conditions of any kind, express or implied, including warranties of merchantability, fitness for a particular purpose, and non-infringement. To the maximum extent permitted by law, the rights holder is not liable for any damages arising from use of the Software.</p>
+      <p>This license applies to the Software, not to user-provided requirements or architecture content created or exported using it. Users are responsible for their content and for confirming any rights or obligations that apply to it. Third-party libraries, marks, and services remain subject to their respective owners’ terms and licenses; this notice does not replace those terms.</p>
+      <p>For permissions beyond internal evaluation, obtain written authorization from the rights holder.</p>
+    </section>
+    <div class="resources-dialog-actions"><button class="button button-export" type="button" data-close-resources>Close</button></div>
+  </dialog>
+
+  <dialog class="template-dialog" id="template-dialog" aria-labelledby="template-dialog-title">
+    <div class="template-dialog-header">
+      <div><span class="eyebrow">START WITH A PATTERN</span><h2 id="template-dialog-title">Architecture templates</h2><p>Choose a starter design, then customize the requirement and configuration.</p></div>
+      <button class="icon-button template-dialog-close" type="button" data-close-template-dialog aria-label="Close templates">×</button>
+    </div>
+    <div class="template-library-toolbar" id="template-library-toolbar">
+      <label class="visually-hidden" for="template-search">Search architecture templates</label>
+      <input id="template-search" type="search" placeholder="Search templates...">
+      <button class="button button-primary" id="create-template-button" type="button"><span aria-hidden="true">＋</span> Create template</button>
+    </div>
+    <p class="template-empty hidden" id="template-empty">No templates match your search. Try another term or create a custom template.</p>
+    <div class="template-card-grid" id="template-card-grid"></div>
+    <form class="template-editor hidden" id="template-editor">
+      <div class="template-editor-heading"><div><h3 id="template-editor-title">Create custom template</h3><p>Save reusable requirement and default design settings in this browser.</p></div><button class="text-action" type="button" id="cancel-template-edit">Back to templates</button></div>
+      <div class="template-editor-fields">
+        <label>Template name<input id="template-name" maxlength="60" required placeholder="e.g. Customer portal"></label>
+        <label>Category<input id="template-category" maxlength="32" required placeholder="e.g. Digital commerce"></label>
+        <label class="template-field-wide">Short description<input id="template-description" maxlength="120" required placeholder="What this architecture starter is designed for"></label>
+        <label class="template-field-wide">Business requirement<textarea id="template-requirement" rows="4" maxlength="1200" required placeholder="Describe the users, problem, and desired outcomes"></textarea></label>
+        <label>Cloud provider<select id="template-provider"><option value="AWS">AWS</option><option value="Azure">Azure</option><option value="GCP">Google Cloud</option></select></label>
+        <label>Workload pattern<select id="template-workload"><option value="web">Web application</option><option value="data">Data platform</option><option value="ai">AI / machine learning</option><option value="iot">IoT / event processing</option></select></label>
+        <label>Traffic profile<select id="template-traffic"><option value="moderate">Moderate</option><option value="high">High</option><option value="variable">Variable / spiky</option></select></label>
+        <label class="template-switch-field"><span>Multi-region resilience</span><input id="template-multiregion" type="checkbox"><small>Include a secondary failover region</small></label>
+      </div>
+      <p class="template-editor-error" id="template-editor-error" role="alert"></p>
+      <div class="template-editor-actions"><button class="button button-export" type="button" id="delete-template-button">Delete custom template</button><button class="button button-export" type="button" id="cancel-template-edit-secondary">Cancel</button><button class="button button-primary" type="submit">Save template</button></div>
+    </form>
+  </dialog>
+
+  <dialog class="design-editor-dialog" id="design-editor-dialog" aria-labelledby="design-editor-title">
+    <div class="design-editor-header">
+      <div><span class="eyebrow">CUSTOMIZE ARCHITECTURE</span><h2 id="design-editor-title">Architecture design editor</h2><p>Edit services, group them by layer, adjust vertical spacing, and add or remove building blocks. Changes update the diagram and exports.</p></div>
+      <button class="icon-button" type="button" data-close-design-editor aria-label="Close architecture editor">×</button>
+    </div>
+    <div class="design-editor-toolbar">
+      <span class="design-editor-count" id="design-editor-count">0 components</span>
+      <label for="editor-stage-filter">Architecture layer</label>
+      <select id="editor-stage-filter"><option value="all">All layers</option><option value="clients">Clients</option><option value="edge">Edge &amp; security</option><option value="compute">Application &amp; cache</option><option value="events">Events &amp; integrations</option><option value="data">Data &amp; storage</option><option value="observe">Operations</option></select>
+      <label for="editor-layer-gap">Gap between layers (px)</label>
+      <input id="editor-layer-gap" type="number" min="20" max="120" step="1" value="33" inputmode="numeric" aria-describedby="editor-layer-gap-hint">
+      <button class="button button-export" type="button" id="reset-design-components">Reset to generated design</button>
+    </div>
+    <p class="design-editor-hint" id="editor-layer-gap-hint">Adjust the vertical space between architecture layers. Connections flow top to bottom and will follow the updated spacing when applied.</p>
+    <div class="design-component-list" id="design-component-list"></div>
+    <form class="design-add-form" id="design-add-form">
+      <h3>Add a component</h3>
+      <div class="design-add-fields">
+        <label>Component name<input id="new-component-name" maxlength="60" required placeholder="e.g. Search service"></label>
+        <label>Layer<select id="new-component-stage"><option value="clients">Clients</option><option value="edge">Edge &amp; security</option><option value="compute" selected>Application &amp; cache</option><option value="events">Events &amp; integrations</option><option value="data">Data &amp; storage</option><option value="observe">Operations</option></select></label>
+        <label class="design-add-wide">Purpose or connection note<input id="new-component-note" maxlength="100" placeholder="What this component does"></label>
+      </div>
+      <button class="button button-primary" type="submit">Add component</button>
+    </form>
+    <p class="design-editor-error" id="design-editor-error" role="alert"></p>
+    <div class="design-editor-actions"><button class="button button-export" type="button" data-close-design-editor>Cancel</button><button class="button button-primary" id="apply-design-changes" type="button">Apply design changes</button></div>
+  </dialog>
+
+  <dialog class="admin-dialog" id="admin-dialog" aria-labelledby="admin-dialog-title">
+    <div class="admin-dialog-header">
+      <div><span class="eyebrow">WORKSPACE CONFIGURATION</span><h2 id="admin-dialog-title">Admin &amp; settings</h2><p>Configure this browser-based workspace. These settings are local and are not protected by a server-side admin role.</p></div>
+      <button class="icon-button" type="button" data-close-admin aria-label="Close admin settings">×</button>
+    </div>
+    <section class="admin-setting-section" aria-labelledby="appearance-title">
+      <div><h3 id="appearance-title">Appearance</h3><p>Choose the color theme for this browser.</p></div>
+      <label for="theme-select">Color theme</label>
+      <select id="theme-select"><option value="light">Light</option><option value="dark">Dark</option></select>
+    </section>
+    <section class="admin-setting-section entra-admin-section" aria-labelledby="entra-admin-title">
+      <div><h3 id="entra-admin-title">Microsoft Entra ID</h3><p>Register this app as a Single-page application. The client ID is public; a client secret is not used or supported in a browser.</p></div>
+      <label for="entra-tenant-id">Directory (tenant) ID or verified domain</label>
+      <input id="entra-tenant-id" type="text" autocomplete="off" spellcheck="false" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+      <label for="entra-client-id">Application (client) ID</label>
+      <input id="entra-client-id" type="text" autocomplete="off" spellcheck="false" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+      <label for="entra-redirect-uri">Redirect URI</label>
+      <input id="entra-redirect-uri" type="url" autocomplete="url" placeholder="https://your-app.example.com/">
+      <p class="admin-status" id="admin-status" role="status" aria-live="polite"></p>
+      <p class="admin-help">Settings are stored in this browser. Serve the app over HTTPS or localhost and register the exact redirect URI in the app registration.</p>
+      <div class="admin-setting-actions">
+        <button class="button button-export" type="button" id="clear-entra-config">Clear Entra settings</button>
+        <button class="button button-primary" type="button" id="save-entra-config">Save Entra settings</button>
+      </div>
+    </section>
+    <p class="admin-demo-warning"><strong>Demo limitation:</strong> Local demo sign-in is not authentication or access control. Anyone using this browser can open these settings and edit locally stored configuration.</p>
+    <div class="admin-dialog-actions"><button class="button button-export" type="button" data-close-admin>Close</button></div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>
