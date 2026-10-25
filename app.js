@@ -3,6 +3,7 @@
 
   const appVersion = "1.1.0";
   const storageKey = "archway-studio-current-design";
+  const layoutStorageKey = "archway-studio-layout";
   const authSessionKey = "archway-studio-auth-session";
   const entraConfigKey = "archway-studio-entra-config";
   const themeStorageKey = "archway-studio-theme";
@@ -93,6 +94,9 @@
   let designAppInitialized = false;
   let editingTemplateId = null;
   let pendingDesignNodes = null;
+  let pendingLayerTitles = null;
+  let diagramZoom = 1;
+  let diagramPointerAction = null;
   const state = {
     provider: "AWS",
     region: "us-east-1",
@@ -101,6 +105,10 @@
     workload: "web",
     multiRegion: true,
     layerGap: 33,
+    diagramTitle: null,
+    diagramCaption: null,
+    layerTitles: null,
+    integration: null,
     designNodes: null,
     showAllRationale: false,
     storageWarningShown: false,
@@ -143,6 +151,33 @@
 
   function getCatalog() {
     return providers[state.provider].components[state.workload];
+  }
+
+  function getDefaultDiagramTitle() {
+    return {
+      web: "Commerce, built to scale",
+      data: "Data, connected end to end",
+      ai: "AI, ready for production",
+      iot: "Telemetry, at the edge"
+    }[state.workload];
+  }
+
+  function getDefaultDiagramCaption() {
+    return {
+      web: "Requests pass through edge security to a private network; asynchronous events connect the data tier to secure payment, tax and shipping integrations.",
+      data: "Private connectors ingest ERP, CRM and SaaS data into governed storage; scoped credentials, checkpoints and pipeline monitoring protect each flow.",
+      ai: "Documents enter through authenticated APIs; private model and event services connect secure repositories to inference and monitored storage.",
+      iot: "Devices connect over mutually authenticated MQTT; a private network routes buffered events to time-series storage and partner brokers."
+    }[state.workload];
+  }
+
+  function getLayerTitle(key) {
+    const stage = stages.find((item) => item.key === key);
+    return state.layerTitles && state.layerTitles[key] ? state.layerTitles[key] : stage.title.replace(/^\d+\s+/, "");
+  }
+
+  function getIntegrationDetails() {
+    return state.integration || integrationCatalog[state.workload];
   }
 
   function getDefaultNodes() {
@@ -219,7 +254,7 @@
     const cardHeight = 50;
     const cardStart = 230;
     const cardEnd = 975;
-    const layerStart = 86;
+    const layerStart = 105;
     const layerY = Object.fromEntries(stages.map((stage, index) => [stage.key, layerStart + index * (cardHeight + layerGap)]));
     const networkTop = layerY.compute - 14;
     const networkBottom = layerY.observe + 103;
@@ -231,38 +266,75 @@
     const kindColors = { clients: "#8792a8", edge: "#468fc7", security: "#df9647", gateway: "#bd8a40", compute: "#8064e1", cache: "#8b74df", events: "#538bc9", data: "#32a183", observe: "#657c98" };
     const definitions = [
       `<defs>
-        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fcfcff"/><stop offset="1" stop-color="#f8f9fd"/></linearGradient>
-        <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4 L0,8 z" fill="#8878d4"/></marker>
+        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fbfcff"/><stop offset="1" stop-color="#f2f5fb"/></linearGradient>
+        <linearGradient id="header" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#202744"/><stop offset=".58" stop-color="#302b58"/><stop offset="1" stop-color="#453677"/></linearGradient>
+        <pattern id="grid" width="22" height="22" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".8" fill="#cad2e4" fill-opacity=".55"/></pattern>
+        <filter id="card-shadow" x="-15%" y="-20%" width="135%" height="155%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#4c5876" flood-opacity=".12"/></filter>
+        <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4 L0,8 z" fill="#8271d2"/></marker>
         <marker id="arrow-reverse" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4 L0,8 z" fill="#94abc4"/></marker>
       </defs>
-      <rect x="0" y="0" width="${width}" height="${height}" rx="7" fill="url(#bg)"/>`
+      <rect x="0" y="0" width="${width}" height="${height}" rx="12" fill="url(#bg)"/>
+      <rect x="0" y="0" width="${width}" height="${height}" rx="12" fill="url(#grid)"/>`
     ];
     const deployment = state.multiRegion
       ? `${state.region.toUpperCase()}  →  ${state.secondRegion.toUpperCase()}  ·  FAILOVER`
       : `${state.region.toUpperCase()}  ·  SINGLE REGION`;
-    definitions.push(`<text x="24" y="30" fill="#53617b" font-family="Arial,sans-serif" font-size="15" font-weight="700" letter-spacing=".35">${escapeXml(`${state.provider} DEPLOYMENT`)}</text>`);
-    definitions.push(`<text x="976" y="30" text-anchor="end" fill="#68738a" font-family="Arial,sans-serif" font-size="12" font-weight="700">${escapeXml(deployment)}</text>`);
+    definitions.push(`<path d="M12 0h976a12 12 0 0 1 12 12v66H0V12A12 12 0 0 1 12 0z" fill="url(#header)"/>`);
+    definitions.push(`<circle cx="30" cy="27" r="13" fill="#fff" fill-opacity=".12"/><text x="30" y="32" text-anchor="middle" fill="#fff" font-family="Arial,sans-serif" font-size="14" font-weight="700">${escapeXml(providers[state.provider].mark)}</text>`);
+    definitions.push(`<text x="52" y="24" fill="#c9c5ec" font-family="Arial,sans-serif" font-size="10" font-weight="700" letter-spacing="1.2">${escapeXml(`${state.provider.toUpperCase()}  /  ${workloadLabels[state.workload].toUpperCase()}`)}</text>`);
+    definitions.push(`<text x="52" y="52" fill="#fff" font-family="Arial,sans-serif" font-size="21" font-weight="700">${escapeXml(state.diagramTitle || getDefaultDiagramTitle())}</text>`);
+    definitions.push(`<rect x="687" y="17" width="286" height="39" rx="9" fill="#fff" fill-opacity=".1" stroke="#fff" stroke-opacity=".14"/>`);
+    definitions.push(`<circle cx="705" cy="36" r="4" fill="#67ddb6"/><text x="717" y="33" fill="#fff" font-family="Arial,sans-serif" font-size="11" font-weight="700">${escapeXml(deployment)}</text><text x="717" y="47" fill="#c9cde0" font-family="Arial,sans-serif" font-size="9">${state.multiRegion ? "REGIONAL FAILOVER CONFIGURED" : "SINGLE REGION · MULTI-ZONE DESIGN"}</text>`);
     definitions.push(`<rect x="16" y="${networkTop}" width="968" height="${networkBottom - networkTop}" rx="12" fill="#f8f8ff" fill-opacity=".7" stroke="#9a8ce2" stroke-width="1.5" stroke-dasharray="6 5"/>`);
-    definitions.push(`<text x="30" y="${layerY.compute + 14}" fill="#6356ab" font-family="Arial,sans-serif" font-size="12" font-weight="700" letter-spacing=".45">${escapeXml(`PRIVATE NETWORK · ${networkServices[state.provider][0]} · ${networkServices[state.provider][2]}`)}</text>`);
-    definitions.push(`<rect x="16" y="${layerY.clients - 8}" width="968" height="${cardHeight + 16}" rx="10" fill="#f4f8fc" stroke="#dce5f0"/>`);
-    definitions.push(`<rect x="16" y="${layerY.edge - 8}" width="968" height="${cardHeight + 16}" rx="10" fill="#fffaf3" stroke="#f1e4d3"/>`);
-    let previousPopulatedY = null;
-    stages.forEach((stage) => {
+    definitions.push(`<rect x="16" y="${networkTop}" width="968" height="30" rx="12" fill="#eeeaff" fill-opacity=".82"/>`);
+    definitions.push(`<text x="30" y="${networkTop + 20}" fill="#6356ab" font-family="Arial,sans-serif" font-size="11" font-weight="700" letter-spacing=".35">${escapeXml(`PRIVATE NETWORK  ·  ${networkServices[state.provider][0]}  ·  ${networkServices[state.provider][2]}`)}</text>`);
+    stages.forEach((stage, index) => {
       const y = layerY[stage.key];
+      const fills = ["#f2f7fd", "#fff8ef", "#f7f5ff", "#f1f7fd", "#f1f8f6", "#f3f6fa"];
+      const strokes = ["#e0eaf5", "#f2e6d7", "#e7e1fa", "#e0eaf5", "#e0eee8", "#e2e8f0"];
+      definitions.push(`<rect x="16" y="${y - 5}" width="968" height="${cardHeight + 10}" rx="10" fill="${fills[index]}" stroke="${strokes[index]}"/>`);
+    });
+    const layerLayouts = Object.fromEntries(stages.map((stage) => {
       const items = nodes[stage.key];
       const gap = 12;
       const cardWidth = Math.min(235, (cardEnd - cardStart - gap * (items.length - 1)) / Math.max(items.length, 1));
       const cardXs = items.map((_, index) => cardStart + index * (cardWidth + gap));
-      if (items.length) {
-        const centerY = y + cardHeight / 2;
-        if (previousPopulatedY !== null) {
-          definitions.push(`<path d="M200 ${previousPopulatedY} V${centerY}" fill="none" stroke="#8878d4" stroke-width="1.5"/>`);
-        }
-        const trunkEnd = cardXs[cardXs.length - 1] - 10;
-        definitions.push(`<path d="M200 ${centerY} H${trunkEnd}" fill="none" stroke="#94abc4" stroke-width="1.5"/>`);
-        cardXs.forEach((x) => definitions.push(`<path d="M${x - 10} ${centerY} H${x - 4}" fill="none" stroke="#8878d4" stroke-width="1.5" marker-end="url(#arrow)"/>`));
-        previousPopulatedY = centerY;
-      }
+      return [stage.key, { items, y: layerY[stage.key], cardWidth, cardXs }];
+    }));
+    const addLayerFlow = (sourceKey, targetKey, busX, sourceKinds = null, targetKinds = null) => {
+      const source = layerLayouts[sourceKey];
+      const target = layerLayouts[targetKey];
+      if (!source.items.length || !target.items.length) return;
+      const sourceIndexes = source.items.map((item, index) => ({ item, index }))
+        .filter(({ item }) => !sourceKinds || sourceKinds.includes(item.kind))
+        .map(({ index }) => index);
+      if (!sourceIndexes.length) return;
+      const targetIndexes = target.items.map((item, index) => ({ item, index }))
+        .filter(({ item }) => !targetKinds || targetKinds.includes(item.kind))
+        .map(({ index }) => index);
+      if (!targetIndexes.length) return;
+      const sourceY = source.y + cardHeight;
+      const busY = sourceY + 15;
+      const targetY = target.y - 7;
+      sourceIndexes.forEach((index) => {
+        const sourceX = source.cardXs[index] + source.cardWidth / 2;
+        definitions.push(`<path data-flow="${sourceKey}-to-${targetKey}" d="M${sourceX} ${sourceY} V${busY} H${busX}" fill="none" stroke="#7180b7" stroke-width="1.5"/>`);
+      });
+      definitions.push(`<path data-flow="${sourceKey}-to-${targetKey}" d="M${busX} ${busY} V${targetY}" fill="none" stroke="#7180b7" stroke-width="1.7"/>`);
+      targetIndexes.forEach((index) => {
+        const targetX = target.cardXs[index] + target.cardWidth / 2;
+        definitions.push(`<path data-flow="${sourceKey}-to-${targetKey}" d="M${busX} ${targetY} H${targetX} V${target.y}" fill="none" stroke="#7180b7" stroke-width="1.5" marker-end="url(#arrow)"/>`);
+      });
+    };
+    addLayerFlow("clients", "edge", 194);
+    const appTargets = layerLayouts.compute.items.some((item) => item.kind === "compute") ? ["compute"] : null;
+    addLayerFlow("edge", "compute", 202, null, appTargets);
+    addLayerFlow("compute", "events", 190, ["compute", "cache"]);
+    addLayerFlow("compute", "data", 202, ["compute", "cache"]);
+    addLayerFlow("compute", "observe", 214, ["compute", "cache"]);
+
+    stages.forEach((stage) => {
+      const { y, items, cardWidth, cardXs } = layerLayouts[stage.key];
       items.forEach((item, itemIndex) => {
         const x = cardXs[itemIndex];
         const accent = kindColors[item.kind] || "#8064e1";
@@ -272,23 +344,207 @@
         const maxNoteLength = Math.max(8, Math.floor(textWidth / 6));
         const label = item.name.length > maxLabelLength ? `${item.name.slice(0, maxLabelLength - 1)}…` : item.name;
         const note = item.note.length > maxNoteLength ? `${item.note.slice(0, maxNoteLength - 1)}…` : item.note;
-        definitions.push(`<g><title>${escapeXml(item.name)} — ${escapeXml(item.note)}</title><rect x="${x}" y="${y}" width="${cardWidth}" height="${cardHeight}" rx="7" fill="${fill}" stroke="#e2e6ef"/><rect x="${x}" y="${y + 8}" width="4" height="34" rx="2" fill="${accent}"/><rect x="${x + 11}" y="${y + 10}" width="30" height="30" rx="7" fill="${accent}" fill-opacity=".11"/>${serviceIcon(item.kind, x + 14, y + 13, accent)}<text x="${x + 50}" y="${y + 23}" fill="#35425e" font-family="Arial,sans-serif" font-size="12" font-weight="700">${escapeXml(label)}</text><text x="${x + 50}" y="${y + 39}" fill="#707c92" font-family="Arial,sans-serif" font-size="10">${escapeXml(note)}</text><text x="${x + cardWidth - 38}" y="${y + cardHeight - 5}" fill="${brandColor}" font-family="Arial,sans-serif" font-size="9" font-weight="700">${escapeXml(state.provider)}</text></g>`);
+        definitions.push(`<g data-component-id="${escapeXml(item.id)}" data-component-layer="${stage.key}" tabindex="0" role="button" aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight" aria-label="Move ${escapeXml(item.name)}. Drag to reorder or move between layers. Use arrow keys to reposition." style="cursor:grab" filter="url(#card-shadow)"><title>${escapeXml(item.name)} — ${escapeXml(item.note)}</title><rect x="${x}" y="${y}" width="${cardWidth}" height="${cardHeight}" rx="9" fill="${fill}" stroke="#dfe4ee"/><rect x="${x}" y="${y + 8}" width="4" height="34" rx="2" fill="${accent}"/><rect x="${x + 11}" y="${y + 10}" width="30" height="30" rx="8" fill="${accent}" fill-opacity=".12"/>${serviceIcon(item.kind, x + 14, y + 13, accent)}<text x="${x + 50}" y="${y + 23}" fill="#35425e" font-family="Arial,sans-serif" font-size="12" font-weight="700">${escapeXml(label)}</text><text x="${x + 50}" y="${y + 39}" fill="#707c92" font-family="Arial,sans-serif" font-size="10">${escapeXml(note)}</text><rect x="${x + cardWidth - 42}" y="${y + 8}" width="34" height="15" rx="7" fill="${brandColor}" fill-opacity=".1"/><text x="${x + cardWidth - 25}" y="${y + 19}" text-anchor="middle" fill="${brandColor}" font-family="Arial,sans-serif" font-size="8" font-weight="700">${escapeXml(state.provider)}</text></g>`);
       });
       const labelY = stage.key === "compute" ? y + 35 : y + 12;
-      definitions.push(`<text x="28" y="${labelY}" fill="${stage.key === "edge" ? "#af8050" : "#727d93"}" font-family="Arial,sans-serif" font-size="11" font-weight="700" letter-spacing=".35">${escapeXml(stage.title)}</text>`);
+      const stageLabel = state.layerTitles && state.layerTitles[stage.key]
+        ? `${String(index + 1).padStart(2, "0")}  ${state.layerTitles[stage.key].toUpperCase()}`
+        : stage.title;
+      definitions.push(`<text x="28" y="${labelY}" fill="${stage.key === "edge" ? "#af8050" : "#727d93"}" font-family="Arial,sans-serif" font-size="11" font-weight="700" letter-spacing=".35">${escapeXml(stageLabel)}</text>`);
     });
-    const external = integrationCatalog[state.workload];
+    const external = getIntegrationDetails();
     definitions.push(`<path d="M230 ${layerY.events + cardHeight - 5} H190 V${integrationY - 12} H370 V${integrationY + 25}" fill="none" stroke="#6889b5" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#arrow)"/>`);
     definitions.push(`<path d="M370 ${integrationY + 32} H180 V${layerY.events + cardHeight + 4} H230" fill="none" stroke="#94abc4" stroke-width="1.5" stroke-dasharray="2 3" marker-end="url(#arrow-reverse)"/>`);
     definitions.push(`<text x="25" y="${integrationY - 20}" fill="#7485a2" font-family="Arial,sans-serif" font-size="10">NAT · outbound HTTPS · signed webhook response</text>`);
-    definitions.push(`<g><title>External integration: ${escapeXml(external[0])} — ${escapeXml(external[1])}</title><rect x="370" y="${integrationY}" width="260" height="50" rx="7" fill="#fffaf4" stroke="#f1e3d0"/>`);
+    definitions.push(`<g filter="url(#card-shadow)"><title>External integration: ${escapeXml(external[0])} — ${escapeXml(external[1])}</title><rect x="370" y="${integrationY}" width="260" height="50" rx="9" fill="#fffaf4" stroke="#f1e3d0"/>`);
     definitions.push(`<rect x="381" y="${integrationY + 10}" width="30" height="30" rx="7" fill="#e5a75e" fill-opacity=".12"/>${serviceIcon("integration", 384, integrationY + 13, "#c4843a")}`);
     definitions.push(`<text x="420" y="${integrationY + 22}" fill="#50566a" font-family="Arial,sans-serif" font-size="12" font-weight="700">${escapeXml(external[0].length > 26 ? `${external[0].slice(0, 24)}…` : external[0])}</text>`);
     definitions.push(`<text x="420" y="${integrationY + 38}" fill="#74798a" font-family="Arial,sans-serif" font-size="10">${escapeXml(external[1].length > 28 ? `${external[1].slice(0, 26)}…` : external[1])}</text>`);
     definitions.push(`<text x="700" y="${integrationY + 29}" fill="#8a806d" font-family="Arial,sans-serif" font-size="10" font-weight="700">TLS · SCOPED CREDENTIALS</text></g>`);
     const regionDescription = state.multiRegion ? `, primary region ${state.region} with failover to ${state.secondRegion}` : `, region ${state.region}`;
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeXml(`${state.provider} ${workloadLabels[state.workload]} architecture diagram${regionDescription}. Layers flow top to bottom from clients through edge security and private networking to application, events, data, operations, and external integrations. Includes ${catalog.edge[0]}, ${gatewayServices[state.provider][0]}, ${catalog.events[0]}, ${catalog.data[0]}, and ${integrationCatalog[state.workload][0]}.`)}">${definitions.join("")}</svg>`;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeXml(`${state.provider} ${workloadLabels[state.workload]} architecture diagram${regionDescription}. Layers flow top to bottom from clients through edge security and private networking to application, events, data, operations, and external integrations. Includes ${catalog.edge[0]}, ${gatewayServices[state.provider][0]}, ${catalog.events[0]}, ${catalog.data[0]}, and ${getIntegrationDetails()[0]}.`)}"><title>${escapeXml(state.diagramTitle || getDefaultDiagramTitle())}</title><desc>${escapeXml(state.diagramCaption || getDefaultDiagramCaption())}</desc>${definitions.join("")}</svg>`;
     $("diagram-container").innerHTML = svg;
+    updateDiagramZoom();
+  }
+
+  function updateDiagramZoom() {
+    const canvas = $("diagram-container");
+    const svg = canvas.querySelector("svg");
+    if (!svg) return;
+    const baseWidth = Math.max(canvas.clientWidth, 800);
+    svg.style.width = `${Math.round(baseWidth * diagramZoom)}px`;
+    svg.style.minWidth = "0";
+    $("diagram-zoom-level").textContent = `${Math.round(diagramZoom * 100)}%`;
+    $("zoom-in-button").disabled = diagramZoom >= 2;
+    $("zoom-out-button").disabled = diagramZoom <= 0.6;
+  }
+
+  function setDiagramZoom(value, anchorX = null, anchorY = null) {
+    const canvas = $("diagram-container");
+    const previousZoom = diagramZoom;
+    diagramZoom = Math.max(0.6, Math.min(2, Math.round(value * 100) / 100));
+    if (diagramZoom === previousZoom) return;
+    const scrollX = anchorX === null ? canvas.clientWidth / 2 : anchorX;
+    const scrollY = anchorY === null ? canvas.clientHeight / 2 : anchorY;
+    const contentX = canvas.scrollLeft + scrollX;
+    const contentY = canvas.scrollTop + scrollY;
+    updateDiagramZoom();
+    canvas.scrollLeft = contentX * diagramZoom / previousZoom - scrollX;
+    canvas.scrollTop = contentY * diagramZoom / previousZoom - scrollY;
+  }
+
+  function diagramPoint(event) {
+    const svg = $("diagram-container").querySelector("svg");
+    const matrix = svg && svg.getScreenCTM();
+    if (!matrix) return null;
+    const point = svg.createSVGPoint();
+    point.x = event.clientX;
+    point.y = event.clientY;
+    const transformed = point.matrixTransform(matrix.inverse());
+    return { x: transformed.x, y: transformed.y };
+  }
+
+  function finishDiagramPointer(event) {
+    if (!diagramPointerAction || diagramPointerAction.pointerId !== event.pointerId) return;
+    const action = diagramPointerAction;
+    diagramPointerAction = null;
+    const canvas = $("diagram-container");
+    if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+    if (action.type === "pan") {
+      canvas.classList.remove("is-panning");
+      return;
+    }
+    action.node.removeAttribute("transform");
+    action.node.removeAttribute("aria-grabbed");
+    action.node.style.cursor = "grab";
+    if (!action.moved) return;
+    const point = diagramPoint(event);
+    if (!point) return;
+    const sourceLayer = action.layer;
+    const targetLayer = stages.reduce((closest, stage) =>
+      Math.abs((105 + stages.indexOf(stage) * (50 + state.layerGap) + 25) - point.y) <
+        Math.abs((105 + stages.indexOf(closest) * (50 + state.layerGap) + 25) - point.y) ? stage : closest
+    , stages[0]).key;
+    const nodes = copyDesignNodes(getEffectiveNodes());
+    const sourceIndex = nodes[sourceLayer].findIndex((item) => item.id === action.id);
+    if (sourceIndex < 0) return;
+    const [component] = nodes[sourceLayer].splice(sourceIndex, 1);
+    const targetItems = nodes[targetLayer];
+    if (sourceLayer !== targetLayer && targetItems.length >= 5) {
+      renderDiagram();
+      showToast("That layer already has five components. Remove or move one before dropping another here.");
+      return;
+    }
+    const gap = 12;
+    const targetWidth = Math.min(235, (975 - 230 - gap * Math.max(targetItems.length - 1, 0)) / Math.max(targetItems.length, 1));
+    const insertAt = targetItems.reduce((closest, item, index) => {
+      const center = 230 + index * (targetWidth + gap) + targetWidth / 2;
+      return Math.abs(center - point.x) < Math.abs(closest.distance)
+        ? { index, distance: center - point.x }
+        : closest;
+    }, { index: targetItems.length, distance: Number.POSITIVE_INFINITY }).index;
+    targetItems.splice(insertAt, 0, component);
+    state.designNodes = nodes;
+    render();
+    showToast(`${component.name} moved to ${getLayerTitle(targetLayer)}.`);
+  }
+
+  function wireDiagramInteractions() {
+    const canvas = $("diagram-container");
+    canvas.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0) return;
+      const node = event.target.closest("[data-component-id]");
+      if (node) {
+        const point = diagramPoint(event);
+        if (!point) return;
+        diagramPointerAction = {
+          type: "component",
+          pointerId: event.pointerId,
+          node,
+          id: node.dataset.componentId,
+          layer: node.dataset.componentLayer,
+          startX: point.x,
+          startY: point.y,
+          moved: false
+        };
+        node.setAttribute("aria-grabbed", "true");
+        node.style.cursor = "grabbing";
+        canvas.setPointerCapture(event.pointerId);
+        event.preventDefault();
+        return;
+      }
+      if (event.target.closest("svg")) {
+        diagramPointerAction = {
+          type: "pan",
+          pointerId: event.pointerId,
+          startX: event.clientX,
+          startY: event.clientY,
+          scrollLeft: canvas.scrollLeft,
+          scrollTop: canvas.scrollTop
+        };
+        canvas.classList.add("is-panning");
+        canvas.setPointerCapture(event.pointerId);
+        event.preventDefault();
+      }
+    });
+    canvas.addEventListener("pointermove", (event) => {
+      const action = diagramPointerAction;
+      if (!action || action.pointerId !== event.pointerId) return;
+      if (action.type === "pan") {
+        canvas.scrollLeft = action.scrollLeft - (event.clientX - action.startX);
+        canvas.scrollTop = action.scrollTop - (event.clientY - action.startY);
+        return;
+      }
+      const point = diagramPoint(event);
+      if (!point) return;
+      const dx = point.x - action.startX;
+      const dy = point.y - action.startY;
+      if (Math.abs(dx) + Math.abs(dy) > 4) action.moved = true;
+      if (action.moved) action.node.setAttribute("transform", `translate(${dx} ${dy})`);
+    });
+    canvas.addEventListener("pointerup", finishDiagramPointer);
+    canvas.addEventListener("pointercancel", finishDiagramPointer);
+    canvas.addEventListener("keydown", (event) => {
+      const node = event.target.closest("[data-component-id]");
+      const key = event.key;
+      if (!node || !["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(key)) return;
+      event.preventDefault();
+      const nodes = copyDesignNodes(getEffectiveNodes());
+      const sourceLayer = node.dataset.componentLayer;
+      const sourceIndex = nodes[sourceLayer].findIndex((item) => item.id === node.dataset.componentId);
+      if (sourceIndex < 0) return;
+      let targetLayer = sourceLayer;
+      let targetIndex = sourceIndex;
+      if (key === "ArrowLeft" || key === "ArrowRight") {
+        targetIndex = Math.max(0, Math.min(nodes[sourceLayer].length - 1, sourceIndex + (key === "ArrowLeft" ? -1 : 1)));
+      } else {
+        const layerIndex = stages.findIndex((stage) => stage.key === sourceLayer);
+        const nextLayer = stages[layerIndex + (key === "ArrowUp" ? -1 : 1)];
+        if (!nextLayer) return;
+        targetLayer = nextLayer.key;
+        if (nodes[targetLayer].length >= 5) {
+          showToast("That layer already has five components. Remove or move one before placing another here.");
+          return;
+        }
+        targetIndex = nodes[targetLayer].length;
+      }
+      if (sourceLayer === targetLayer && sourceIndex === targetIndex) return;
+      const [component] = nodes[sourceLayer].splice(sourceIndex, 1);
+      nodes[targetLayer].splice(targetIndex, 0, component);
+      state.designNodes = nodes;
+      render();
+      const movedNode = Array.from(canvas.querySelectorAll("[data-component-id]"))
+        .find((candidate) => candidate.dataset.componentId === component.id);
+      if (movedNode) movedNode.focus();
+      showToast(`${component.name} moved to ${getLayerTitle(targetLayer)}.`);
+    });
+    canvas.addEventListener("wheel", (event) => {
+      if (!event.ctrlKey && !event.metaKey) return;
+      event.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      setDiagramZoom(diagramZoom + (event.deltaY < 0 ? 0.1 : -0.1), event.clientX - rect.left, event.clientY - rect.top);
+    }, { passive: false });
+    window.addEventListener("resize", updateDiagramZoom);
   }
 
   function getCost() {
@@ -454,7 +710,7 @@
 
   function renderTechnologyStack() {
     const catalog = getCatalog();
-    const parts = [catalog.edge[0], gatewayServices[state.provider][0], networkServices[state.provider][0], catalog.compute[0], catalog.events[0], catalog.data[0], secretsServices[state.provider][0], catalog.observe[0], integrationCatalog[state.workload][0]];
+    const parts = [catalog.edge[0], gatewayServices[state.provider][0], networkServices[state.provider][0], catalog.compute[0], catalog.events[0], catalog.data[0], secretsServices[state.provider][0], catalog.observe[0], getIntegrationDetails()[0]];
     $("technology-stack").innerHTML = parts.map((name) => `<span class="tech-pill">${escapeHtml(name)}</span>`).join("");
   }
 
@@ -520,7 +776,7 @@
       ["Confirm requirements & landing zone", `Agree on service-level objectives, RTO/RPO, data residency, and peak traffic. Set up ${providerName} accounts/projects, budgets, policy guardrails, and infrastructure-as-code.`],
       ["Establish network and security foundations", `Create ${networkServices[state.provider][0]} with ${networkServices[state.provider][1]}, then configure ${catalog.identity[0]}, ${gatewayServices[state.provider][0]}, managed secrets, private DNS, TLS, and centralized audit logging.`],
       ["Deploy application & data tiers", `Provision ${computeName}, ${dataName}, and ${storageName}. Use managed identity and separate dev, staging, and production environments.`],
-      ["Connect events and external integrations", `Route ${eventsName} through ${networkServices[state.provider][1]} to ${integrationCatalog[state.workload][0]}. Scope credentials, validate inbound webhooks, and set retry and dead-letter policies.`],
+      ["Connect events and external integrations", `Route ${eventsName} through ${networkServices[state.provider][1]} to ${getIntegrationDetails()[0]}. Scope credentials, validate inbound webhooks, and set retry and dead-letter policies.`],
       ["Add resilience & delivery pipelines", state.multiRegion ? `Replicate critical data between ${providers[state.provider].regions.find(([value]) => value === state.region)[1]} and ${providers[state.provider].regions.find(([value]) => value === state.secondRegion)[1]}; define health-based failover and backups, and test recovery objectives.` : "Enable zone redundancy, backups, and tested recovery procedures; document the recovery-region decision."],
       ["Operate, measure & optimize", `Instrument ${catalog.observe[0]}, load-test expected peaks, verify alerts and restore procedures, review the cost assumptions, and run a production readiness assessment.`]
     ];
@@ -533,7 +789,7 @@
       ["Network boundaries & gateways", "◇", [network, ["Subnet design", network[2]], gatewayServices[state.provider]]],
       ["Ingress & identity", "↗", nodes.edge.map(({ name, note }) => [name, note])],
       ["Application & secrets", "▧", nodes.compute.map(({ name, note }) => [name, note])],
-      ["Events & external integrations", "⌁", [...nodes.events.map(({ name, note }) => [name, note]), integrationCatalog[state.workload]]],
+      ["Events & external integrations", "⌁", [...nodes.events.map(({ name, note }) => [name, note]), getIntegrationDetails()]],
       ["Data & observability", "▤", [...nodes.data, ...nodes.observe].map(({ name, note }) => [name, note])]
     ];
     const failover = state.multiRegion ? `, with failover in ${providers[state.provider].regions.find(([value]) => value === state.secondRegion)[1]}` : "";
@@ -562,7 +818,7 @@
     $("design-component-list").innerHTML = stages.filter((stage) => filter === "all" || filter === stage.key).map((stage) => {
       const items = pendingDesignNodes[stage.key];
       return `<section class="design-editor-layer" data-editor-layer="${stage.key}">
-        <h3>${escapeHtml(stage.title.replace(/^\d+\s+/, ""))}<span>${items.length}</span></h3>
+        <div class="design-editor-layer-heading"><label>Layer name<input data-layer-title="${stage.key}" maxlength="40" value="${escapeHtml(pendingLayerTitles[stage.key])}" aria-label="${escapeHtml(stage.title)} layer name"></label><span>${items.length} / 5</span></div>
         ${items.length ? items.map((item, index) => `<article class="design-component-row" data-component-index="${index}">
           <label>Component name<input data-component-field="name" maxlength="60" value="${escapeHtml(item.name)}" aria-label="${escapeHtml(stage.title)} component name"></label>
           <label>Purpose / connection<input data-component-field="note" maxlength="100" value="${escapeHtml(item.note)}" aria-label="${escapeHtml(stage.title)} component purpose"></label>
@@ -578,8 +834,14 @@
 
   function openDesignEditor() {
     pendingDesignNodes = copyDesignNodes(getEffectiveNodes());
+    pendingLayerTitles = Object.fromEntries(stages.map(({ key }) => [key, getLayerTitle(key)]));
     $("editor-stage-filter").value = "all";
     $("editor-layer-gap").value = String(state.layerGap);
+    $("editor-design-name").value = $("architecture-title").textContent;
+    $("editor-diagram-title").value = $("diagram-title").textContent;
+    $("editor-diagram-caption").value = $("diagram-caption").textContent;
+    $("editor-integration-name").value = getIntegrationDetails()[0];
+    $("editor-integration-note").value = getIntegrationDetails()[1];
     $("design-editor-error").textContent = "";
     renderDesignEditor();
     $("design-editor-dialog").showModal();
@@ -595,9 +857,22 @@
 
   function applyDesignChanges() {
     const layerGap = Number($("editor-layer-gap").value);
+    const designName = $("editor-design-name").value.trim();
+    const diagramTitle = $("editor-diagram-title").value.trim();
+    const diagramCaption = $("editor-diagram-caption").value.trim();
+    const integrationName = $("editor-integration-name").value.trim();
+    const integrationNote = $("editor-integration-note").value.trim();
     if (!Number.isInteger(layerGap) || layerGap < 20 || layerGap > 120) {
       $("design-editor-error").textContent = "Set the gap between layers to a whole number from 20 to 120 pixels.";
       $("editor-layer-gap").focus();
+      return;
+    }
+    if (!designName || !diagramTitle || !diagramCaption || !integrationName || !integrationNote) {
+      $("design-editor-error").textContent = "Complete the design name, diagram title, summary, and integration details before applying.";
+      return;
+    }
+    if (Object.values(pendingLayerTitles).some((title) => !title.trim())) {
+      $("design-editor-error").textContent = "Every architecture layer needs a name.";
       return;
     }
     for (const { key } of stages) {
@@ -618,6 +893,11 @@
     }
     state.designNodes = copyDesignNodes(pendingDesignNodes);
     state.layerGap = layerGap;
+    state.layerTitles = Object.fromEntries(Object.entries(pendingLayerTitles).map(([key, title]) => [key, title.trim()]));
+    state.diagramTitle = diagramTitle;
+    state.diagramCaption = diagramCaption;
+    state.integration = [integrationName, integrationNote];
+    $("architecture-title").textContent = designName;
     render();
     $("design-editor-dialog").close();
     $("design-editor-error").textContent = "";
@@ -638,19 +918,8 @@
     renderCost();
     renderComponents();
     renderSteps();
-    $("diagram-title").textContent = {
-      web: "Commerce, built to scale",
-      data: "Data, connected end to end",
-      ai: "AI, ready for production",
-      iot: "Telemetry, at the edge"
-    }[state.workload];
-    const captions = {
-      web: "Requests pass through edge security to a private network; asynchronous events connect the data tier to secure payment, tax and shipping integrations.",
-      data: "Private connectors ingest ERP, CRM and SaaS data into governed storage; scoped credentials, checkpoints and pipeline monitoring protect each flow.",
-      ai: "Documents enter through authenticated APIs; private model and event services connect secure repositories to inference and monitored storage.",
-      iot: "Devices connect over mutually authenticated MQTT; a private network routes buffered events to time-series storage and partner brokers."
-    };
-    $("diagram-caption").textContent = captions[state.workload];
+    $("diagram-title").textContent = state.diagramTitle || getDefaultDiagramTitle();
+    $("diagram-caption").textContent = state.diagramCaption || getDefaultDiagramCaption();
     $("availability-value").textContent = state.multiRegion ? "99.95%" : "99.9%";
     $("availability-detail").textContent = state.multiRegion ? "Multi-region failover" : "Multi-zone resilience";
     $("scalability-value").textContent = state.traffic === "moderate" ? "Medium" : "High";
@@ -672,6 +941,20 @@
       if (["moderate", "high", "variable"].includes(draft.traffic)) state.traffic = draft.traffic;
       if (typeof draft.multiRegion === "boolean") state.multiRegion = draft.multiRegion;
       if (Number.isInteger(draft.layerGap) && draft.layerGap >= 20 && draft.layerGap <= 120) state.layerGap = draft.layerGap;
+      if (typeof draft.diagramTitle === "string" && draft.diagramTitle.trim()) state.diagramTitle = draft.diagramTitle.slice(0, 100);
+      if (typeof draft.diagramCaption === "string" && draft.diagramCaption.trim()) state.diagramCaption = draft.diagramCaption.slice(0, 400);
+      if (draft.layerTitles && typeof draft.layerTitles === "object" && !Array.isArray(draft.layerTitles)) {
+        state.layerTitles = Object.fromEntries(stages.map(({ key }) => [key,
+          typeof draft.layerTitles[key] === "string" && draft.layerTitles[key].trim()
+            ? draft.layerTitles[key].trim().slice(0, 40)
+            : null
+        ]));
+      }
+      if (Array.isArray(draft.integration) && draft.integration.length === 2 &&
+          draft.integration.every((value) => typeof value === "string") &&
+          draft.integration[0].trim() && draft.integration[1].trim()) {
+        state.integration = [draft.integration[0].trim().slice(0, 60), draft.integration[1].trim().slice(0, 100)];
+      }
       const regions = providers[state.provider].regions;
       state.region = regions.some(([value]) => value === draft.region) ? draft.region : regions[0][0];
       const failoverRegions = regions.filter(([value]) => value !== state.region);
@@ -697,6 +980,10 @@
       workload: state.workload,
       multiRegion: state.multiRegion,
       layerGap: state.layerGap,
+      diagramTitle: state.diagramTitle,
+      diagramCaption: state.diagramCaption,
+      layerTitles: state.layerTitles,
+      integration: state.integration,
       requirement: $("requirement-input").value,
       title: $("architecture-title").textContent,
       designNodes: copyDesignNodes(getEffectiveNodes())
@@ -781,6 +1068,14 @@
       renderTemplateCards();
   }
 
+  function openTemplateLibrary() {
+    $("template-search").value = "";
+    showTemplateLibrary();
+    $("template-dialog").showModal();
+    $("template-search").focus();
+    setWorkspaceNavActive("library");
+  }
+
   function useTemplate(template) {
       $("requirement-input").value = template.requirement;
       $("architecture-title").textContent = template.name;
@@ -793,10 +1088,15 @@
       state.workload = template.workload;
       state.multiRegion = template.multiRegion;
       state.designNodes = null;
+      state.diagramTitle = null;
+      state.diagramCaption = null;
+      state.layerTitles = null;
+      state.integration = null;
       state.region = providers[state.provider].regions[0][0];
       state.secondRegion = providers[state.provider].regions[1][0];
       renderRegionOptions(false);
       render();
+      setView("diagram");
       $("template-dialog").close();
       $("requirement").scrollIntoView({ behavior: "smooth", block: "start" });
       $("requirement-input").focus({ preventScroll: true });
@@ -858,6 +1158,11 @@
     state.traffic = $("traffic-select").value;
     state.multiRegion = $("multi-region-toggle").checked;
     if (providerChanged || workloadChanged) state.designNodes = null;
+    if (workloadChanged) {
+      state.diagramTitle = null;
+      state.diagramCaption = null;
+      state.integration = null;
+    }
     renderRegionOptions(true);
     render();
   }
@@ -879,6 +1184,13 @@
     $("diagram-view").classList.toggle("hidden", name !== "diagram");
     $("components-view").classList.toggle("hidden", name !== "components");
     $("steps-view").classList.toggle("hidden", name !== "steps");
+    setWorkspaceNavActive(name === "components" ? "components" : "studio");
+  }
+
+  function setWorkspaceNavActive(action) {
+    document.querySelectorAll(".main-nav [data-nav-action]").forEach((item) => {
+      item.classList.toggle("active", item.dataset.navAction === action);
+    });
   }
 
   function makeMarkdown() {
@@ -887,8 +1199,8 @@
     const securityLines = getSecurityControls().map(([label, text]) => `- **${label}:** ${text}`).join("\n");
     const componentLines = [
       `### Network boundary\n- **Virtual network:** ${networkServices[state.provider][0]} (${networkServices[state.provider][2]})\n- **Private connectivity and egress:** ${networkServices[state.provider][1]}`,
-      ...stages.map((stage) => `### ${stage.title.slice(4)}\n${getEffectiveNodes()[stage.key].map((item) => `- **${item.name}:** ${item.note}`).join("\n")}`),
-      `### External integrations\n- **Integration endpoints:** ${integrationCatalog[state.workload][0]}\n- **Connectivity controls:** ${integrationCatalog[state.workload][1]}`
+      ...stages.map((stage) => `### ${getLayerTitle(stage.key)}\n${getEffectiveNodes()[stage.key].map((item) => `- **${item.name}:** ${item.note}`).join("\n")}`),
+      `### External integrations\n- **Integration endpoints:** ${getIntegrationDetails()[0]}\n- **Connectivity controls:** ${getIntegrationDetails()[1]}`
     ].join("\n\n");
     const implementationLines = buildSteps().map(([title, description], index) => `${index + 1}. **${title}.** ${description}`).join("\n");
     const rationales = getRationales().map((item) => `- **${item.title}:** ${item.copy}`).join("\n");
@@ -920,6 +1232,8 @@ ${requirement}
 - **Availability design target:** ${state.multiRegion ? "99.95%" : "99.9%"} (not an SLA)
 
 ## Architecture diagram
+
+**${$("diagram-title").textContent}** — ${$("diagram-caption").textContent}
 
 See the companion SVG export for the provider-specific architecture flow.
 
@@ -1137,8 +1451,62 @@ ${implementationLines}
       restoreDraft();
       renderRegionOptions(true);
       wireEvents();
+      restoreLayoutPreferences();
       render();
       designAppInitialized = true;
+    }
+  }
+
+  function syncLayoutControls() {
+    const sidebarCollapsed = $("app-shell").classList.contains("sidebar-collapsed");
+    const inputCollapsed = $("requirement").classList.contains("is-collapsed");
+    const insightsCollapsed = $("insights-panel").classList.contains("is-collapsed");
+    const sidebarButton = $("sidebar-collapse-button");
+    sidebarButton.setAttribute("aria-expanded", String(!sidebarCollapsed));
+    sidebarButton.setAttribute("aria-label", `${sidebarCollapsed ? "Expand" : "Collapse"} navigation`);
+    sidebarButton.title = `${sidebarCollapsed ? "Expand" : "Collapse"} navigation`;
+    sidebarButton.textContent = sidebarCollapsed ? "›" : "‹";
+    const inputButton = $("input-panel-toggle");
+    inputButton.setAttribute("aria-expanded", String(!inputCollapsed));
+    inputButton.setAttribute("aria-label", `${inputCollapsed ? "Expand" : "Collapse"} design inputs`);
+    inputButton.title = `${inputCollapsed ? "Expand" : "Collapse"} design inputs`;
+    inputButton.querySelector("[aria-hidden]").textContent = inputCollapsed ? "›" : "‹";
+    const insightsButton = $("insights-panel-toggle");
+    insightsButton.setAttribute("aria-expanded", String(!insightsCollapsed));
+    insightsButton.setAttribute("aria-label", `${insightsCollapsed ? "Expand" : "Collapse"} design insights`);
+    insightsButton.title = `${insightsCollapsed ? "Expand" : "Collapse"} design insights`;
+    insightsButton.querySelector("[aria-hidden]").textContent = insightsCollapsed ? "‹" : "›";
+  }
+
+  function saveLayoutPreferences() {
+    const preferences = {
+      sidebarCollapsed: $("app-shell").classList.contains("sidebar-collapsed"),
+      inputPanelCollapsed: $("requirement").classList.contains("is-collapsed"),
+      insightsPanelCollapsed: $("insights-panel").classList.contains("is-collapsed")
+    };
+    try {
+      window.localStorage.setItem(layoutStorageKey, JSON.stringify(preferences));
+    } catch (error) {
+      showToast(`Could not save panel layout preferences (${error.name}).`);
+    }
+  }
+
+  function restoreLayoutPreferences() {
+    try {
+      const serialized = window.localStorage.getItem(layoutStorageKey);
+      if (serialized === null) return;
+      const preferences = JSON.parse(serialized);
+      if (!preferences || typeof preferences !== "object" || Array.isArray(preferences)) {
+        throw new Error("The saved layout preferences have an invalid format.");
+      }
+      $("app-shell").classList.toggle("sidebar-collapsed", preferences.sidebarCollapsed === true);
+      $("requirement").classList.toggle("is-collapsed", preferences.inputPanelCollapsed === true);
+      $("insights-panel").classList.toggle("is-collapsed", preferences.insightsPanelCollapsed === true);
+      $("builder-grid").classList.toggle("input-collapsed", preferences.inputPanelCollapsed === true);
+      $("builder-grid").classList.toggle("insights-collapsed", preferences.insightsPanelCollapsed === true);
+      syncLayoutControls();
+    } catch (error) {
+      showToast(`Could not restore panel layout preferences (${error.name}).`);
     }
   }
 
@@ -1458,13 +1826,14 @@ ${implementationLines}
       const height = networkBottom.y - networkTop.y + 104;
       cells.push(cell("network-boundary", `${networkServices[state.provider][0]} · ${networkServices[state.provider][2]}`, "swimlane;html=1;startSize=34;rounded=1;fillColor=#f5f7fb;swimlaneFillColor=#f5f7fb;strokeColor=#8391ad;fontStyle=1;container=0;collapsible=0;recursiveResize=0;", "1", 52, networkTop.y - 15, 1360, height));
     }
-    cells.push(cell("design-title", `${$("architecture-title").textContent} · ${state.provider} · ${state.region}`, "text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=20;fontStyle=1;fontColor=#172033;", "1", 52, 24, 1360, 44));
+    cells.push(cell("design-title", `${$("architecture-title").textContent} · ${$("diagram-title").textContent} · ${state.provider} · ${state.region}`, "text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=20;fontStyle=1;fontColor=#172033;", "1", 52, 24, 1360, 44));
+    cells.push(cell("design-summary", $("diagram-caption").textContent, "text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=11;fontColor=#657087;whiteSpace=wrap;", "1", 52, 68, 1300, 24));
 
     const componentPositions = new Map();
     let nextId = 2;
     for (const { stage, items, y } of stageRows) {
       const layerLabelId = `layer-label-${stage.key}`;
-      cells.push(cell(layerLabelId, stage.title.replace(/^\d+\s+/, ""), "text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;fontStyle=1;fontColor=#39445c;whiteSpace=wrap;", "1", 58, y + 17, 148, 48));
+      cells.push(cell(layerLabelId, getLayerTitle(stage.key), "text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;fontStyle=1;fontColor=#39445c;whiteSpace=wrap;", "1", 58, y + 17, 148, 48));
       componentPositions.set(stage.key, []);
       items.forEach((item, index) => {
         const id = `component-${nextId++}`;
@@ -1485,7 +1854,7 @@ ${implementationLines}
     }
     const integrationY = stageRows[stageRows.length - 1].y + 146;
     cells.push(cell("integration-label", "EXTERNAL INTEGRATIONS", "text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;fontStyle=1;fontColor=#39445c;", "1", 58, integrationY + 8, 148, 48));
-    cells.push(cell("integration-endpoints", `${integrationCatalog[state.workload][0]}\n${integrationCatalog[state.workload][1]}`, "rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#f2f0ff;strokeColor=#9b8bdd;fontColor=#30275f;fontSize=12;spacing=8;align=left;verticalAlign=middle;", "1", 220, integrationY, 428, 66));
+    cells.push(cell("integration-endpoints", `${getIntegrationDetails()[0]}\n${getIntegrationDetails()[1]}`, "rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#f2f0ff;strokeColor=#9b8bdd;fontColor=#30275f;fontSize=12;spacing=8;align=left;verticalAlign=middle;", "1", 220, integrationY, 428, 66));
     const xml = `<?xml version="1.0" encoding="UTF-8"?><mxfile host="app.diagrams.net" agent="Archway Studio" version="24.7.17"><diagram id="architecture" name="Architecture"><mxGraphModel dx="1460" dy="${integrationY + 130}" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1460" pageHeight="${integrationY + 130}" math="0" shadow="0"><root>${cells.join("")}</root></mxGraphModel></diagram></mxfile>`;
     downloadFile(`${safeFilename($("architecture-title").textContent)}-architecture.drawio`, xml, "application/vnd.jgraph.mxfile;charset=utf-8");
     showToast("Editable draw.io architecture exported.");
@@ -1499,6 +1868,7 @@ ${implementationLines}
       schemaVersion: 1,
       exportedAt: new Date().toISOString(),
       title: $("architecture-title").textContent,
+      diagram: { title: $("diagram-title").textContent, summary: $("diagram-caption").textContent },
       requirement: $("requirement-input").value.trim(),
       cloud: {
         provider: state.provider,
@@ -1511,7 +1881,7 @@ ${implementationLines}
       layerGapPx: state.layerGap,
       components: stages.map((stage) => ({
         id: stage.key,
-        name: stage.title.replace(/^\d+\s+/, ""),
+        name: getLayerTitle(stage.key),
         components: getEffectiveNodes()[stage.key].map(({ id, name, note, kind }) => ({ id, name, purpose: note, kind }))
       })),
       network: {
@@ -1519,7 +1889,7 @@ ${implementationLines}
         segmentation: networkServices[state.provider][2],
         privateConnectivityAndEgress: networkServices[state.provider][1]
       },
-      externalIntegrations: { endpoints: integrationCatalog[state.workload][0], connectivityControls: integrationCatalog[state.workload][1] },
+      externalIntegrations: { endpoints: getIntegrationDetails()[0], connectivityControls: getIntegrationDetails()[1] },
       technicalSpecifications: getTechnicalSpecifications(),
       securityControls: getSecurityControls().map(([control, recommendation]) => ({ control, recommendation })),
       estimatedMonthlyCostUsd: {
@@ -1609,6 +1979,9 @@ ${implementationLines}
     const previousWorkload = state.workload;
     state.workload = inferWorkload(requirement);
     if (previousWorkload !== state.workload) state.designNodes = null;
+    state.diagramTitle = null;
+    state.diagramCaption = null;
+    state.integration = null;
     $("workload-select").value = state.workload;
     $("architecture-title").textContent = /ecommerce|commerce|checkout|online store/.test(requirement.toLowerCase()) ? "Commerce platform" : requirement.split(/[.!?\n]/)[0].slice(0, 48) || "Architecture design";
     if (state.traffic === "moderate" && /spike|burst|seasonal|peak|variable/i.test(requirement)) {
@@ -1625,6 +1998,10 @@ ${implementationLines}
     $("architecture-title").textContent = "New architecture design";
     state.designNodes = null;
     state.layerGap = 33;
+    state.diagramTitle = null;
+    state.diagramCaption = null;
+    state.layerTitles = null;
+    state.integration = null;
     $("workload-select").value = "web";
     $("traffic-select").value = "moderate";
     $("multi-region-toggle").checked = false;
@@ -1667,9 +2044,32 @@ ${implementationLines}
   }
 
   function wireEvents() {
+    wireDiagramInteractions();
+    $("sidebar-collapse-button").addEventListener("click", () => {
+      $("app-shell").classList.toggle("sidebar-collapsed");
+      syncLayoutControls();
+      saveLayoutPreferences();
+    });
+    $("input-panel-toggle").addEventListener("click", () => {
+      const collapsed = $("requirement").classList.toggle("is-collapsed");
+      $("builder-grid").classList.toggle("input-collapsed", collapsed);
+      syncLayoutControls();
+      saveLayoutPreferences();
+    });
+    $("insights-panel-toggle").addEventListener("click", () => {
+      const collapsed = $("insights-panel").classList.toggle("is-collapsed");
+      $("builder-grid").classList.toggle("insights-collapsed", collapsed);
+      syncLayoutControls();
+      saveLayoutPreferences();
+    });
     $("edit-architecture-button").addEventListener("click", openDesignEditor);
     $("editor-stage-filter").addEventListener("change", renderDesignEditor);
     $("design-component-list").addEventListener("input", (event) => {
+      const layerTitleInput = event.target.closest("input[data-layer-title]");
+      if (layerTitleInput) {
+        pendingLayerTitles[layerTitleInput.dataset.layerTitle] = layerTitleInput.value;
+        return;
+      }
       const input = event.target.closest("input[data-component-field]");
       if (!input) return;
       const row = input.closest(".design-component-row");
@@ -1717,12 +2117,11 @@ ${implementationLines}
         $("design-editor-error").textContent = "That layer already has five components. Move or remove a component before adding another.";
         return;
       }
-      const defaultKinds = { clients: "clients", edge: "edge", compute: "compute", events: "events", data: "data", observe: "observe" };
       pendingDesignNodes[layer].push({
         id: `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         name,
         note: $("new-component-note").value.trim() || "Custom architecture component",
-        kind: defaultKinds[layer] || "compute"
+        kind: $("new-component-kind").value
       });
       $("design-add-form").reset();
       $("new-component-stage").value = layer;
@@ -1743,11 +2142,13 @@ ${implementationLines}
     $("design-editor-dialog").addEventListener("click", (event) => {
       if (event.target === $("design-editor-dialog")) $("design-editor-dialog").close();
     });
-    $("open-templates").addEventListener("click", () => {
-      $("template-search").value = "";
-      showTemplateLibrary();
-      $("template-dialog").showModal();
-      $("template-search").focus();
+    $("open-templates").addEventListener("click", openTemplateLibrary);
+    document.querySelectorAll(".main-nav [data-nav-action]").forEach((item) => {
+      item.addEventListener("click", (event) => {
+        event.preventDefault();
+        if (item.dataset.navAction === "library") openTemplateLibrary();
+        else setView(item.dataset.navAction === "components" ? "components" : "diagram");
+      });
     });
     $("template-search").addEventListener("input", renderTemplateCards);
     $("create-template-button").addEventListener("click", () => showTemplateEditor());
@@ -1772,6 +2173,10 @@ ${implementationLines}
     });
     $("template-dialog").addEventListener("click", (event) => {
       if (event.target === $("template-dialog")) $("template-dialog").close();
+    });
+    $("template-dialog").addEventListener("close", () => {
+      const activeView = document.querySelector(".view-tab.active")?.dataset.view || "diagram";
+      setWorkspaceNavActive(activeView === "components" ? "components" : "studio");
     });
     $("provider-select").addEventListener("change", updateStateFromControls);
     $("region-select").addEventListener("change", () => {
@@ -1886,6 +2291,13 @@ ${implementationLines}
     });
     $("canvas-export-button").addEventListener("click", exportSvg);
     $("zoom-button").addEventListener("click", fitDiagram);
+    $("zoom-in-button").addEventListener("click", () => setDiagramZoom(diagramZoom + 0.1));
+    $("zoom-out-button").addEventListener("click", () => setDiagramZoom(diagramZoom - 0.1));
+    $("zoom-reset-button").addEventListener("click", () => {
+      diagramZoom = 1;
+      updateDiagramZoom();
+      $("diagram-container").scrollTo({ left: 0, top: 0, behavior: "smooth" });
+    });
     $("new-design").addEventListener("click", resetDesign);
     $("share-button").addEventListener("click", async () => {
       if (!navigator.clipboard || !navigator.clipboard.writeText) {

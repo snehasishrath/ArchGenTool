@@ -22,9 +22,11 @@ This project is intentionally lightweight: the browser app runs without a bundle
 ## Features
 
 - AWS, Azure, and Google Cloud architecture recommendations for web, data, AI/ML, and IoT/event workloads
-- Editable top-to-bottom design diagrams with provider-specific service blocks and integration lines
+- Interactive architecture diagrams with draggable components, layer-to-layer moves, pan and zoom controls, provider-specific flows, and automatic connector updates
+- Editable design names, layer names, service details, diagram summaries, and integrations, synchronized with SVG, draw.io, Markdown, and JSON exports
+- Collapsible navigation, configuration, and insights panels with browser-local layout persistence across refreshes
 - Deployment, security, resilience, scalability, and implementation guidance
-- Browser-local templates, design drafts, and appearance settings
+- Browser-local templates, design drafts, appearance settings, and panel layout preferences
 - Export options for SVG, PNG, JPG, Markdown, PDF, draw.io, and JSON
 - Built-in architecture guidance from the project docs and release notes
 

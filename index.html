@@ -37,11 +37,14 @@
   </main>
 
   <div class="app-shell hidden" id="app-shell">
-    <aside class="sidebar" aria-label="Main navigation">
-      <a class="brand" href="#" aria-label="Archway home">
-        <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
-        <span>archway<span class="brand-period">.</span></span>
-      </a>
+    <aside class="sidebar" id="main-navigation" aria-label="Main navigation">
+      <div class="sidebar-brand-row">
+        <a class="brand" href="#" aria-label="Archway home">
+          <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+          <span>archway<span class="brand-period">.</span></span>
+        </a>
+        <button class="icon-button sidebar-collapse-button" id="sidebar-collapse-button" type="button" aria-label="Collapse navigation" aria-controls="main-navigation" aria-expanded="true" title="Collapse navigation">‹</button>
+      </div>
 
       <div class="workspace-switcher">
         <span class="workspace-avatar">N</span>
@@ -51,9 +54,9 @@
 
       <p class="sidebar-label">WORKSPACE</p>
       <nav class="main-nav">
-        <a class="nav-link active" href="#design"><span class="nav-icon" aria-hidden="true">◈</span> Architecture studio</a>
-        <a class="nav-link" href="#design"><span class="nav-icon grid-icon" aria-hidden="true">▦</span> Design library <span class="nav-count">4</span></a>
-        <a class="nav-link" href="#design"><span class="nav-icon" aria-hidden="true">⌘</span> Components</a>
+        <a class="nav-link active" href="#design" data-nav-action="studio"><span class="nav-icon" aria-hidden="true">◈</span> Architecture studio</a>
+        <a class="nav-link" href="#design" data-nav-action="library"><span class="nav-icon grid-icon" aria-hidden="true">▦</span> Design library <span class="nav-count">4</span></a>
+        <a class="nav-link" href="#design" data-nav-action="components"><span class="nav-icon" aria-hidden="true">⌘</span> Components</a>
         <button class="nav-link admin-nav-link" id="admin-panel-open" type="button"><span class="nav-icon" aria-hidden="true">⚙</span> Admin &amp; settings</button>
       </nav>
 
@@ -126,8 +129,11 @@
           </div>
         </section>
 
-        <section class="builder-grid" aria-label="Architecture designer">
+        <section class="builder-grid" id="builder-grid" aria-label="Architecture designer">
           <section class="panel input-panel" id="requirement">
+            <div class="side-panel-rail">
+              <button class="side-panel-toggle" id="input-panel-toggle" type="button" aria-label="Collapse design inputs" aria-controls="requirement" aria-expanded="true" title="Collapse design inputs"><span aria-hidden="true">‹</span><span class="side-panel-label">Design inputs</span></button>
+            </div>
             <details class="input-section" open>
               <summary class="panel-heading collapse-summary" aria-controls="requirement-content">
                 <span><span class="step-number">01</span><span class="section-heading-copy"><strong>Describe your solution</strong><small>Business requirement</small></span></span>
@@ -215,7 +221,13 @@
               <div class="canvas-tools">
                 <span class="canvas-status"><span class="canvas-status-dot"></span> Design ready</span>
                 <button class="button button-export architecture-edit-button" id="edit-architecture-button" type="button" aria-haspopup="dialog"><span aria-hidden="true">✎</span> Edit design</button>
-                <button class="icon-button canvas-icon-button" id="zoom-button" aria-label="Fit architecture to view" title="Fit to view">⛶</button>
+                <div class="diagram-zoom-controls" role="group" aria-label="Diagram zoom controls">
+                  <button class="icon-button canvas-icon-button" id="zoom-out-button" type="button" aria-label="Zoom out" title="Zoom out">−</button>
+                  <span class="diagram-zoom-level" id="diagram-zoom-level" aria-live="polite">100%</span>
+                  <button class="icon-button canvas-icon-button" id="zoom-in-button" type="button" aria-label="Zoom in" title="Zoom in">+</button>
+                  <button class="icon-button canvas-icon-button" id="zoom-reset-button" type="button" aria-label="Reset zoom" title="Reset zoom">⟲</button>
+                </div>
+                <button class="icon-button canvas-icon-button" id="zoom-button" aria-label="Open large diagram view" title="Open large view">⛶</button>
                 <button class="icon-button canvas-icon-button" id="canvas-export-button" aria-label="Export diagram" title="Export diagram">⇩</button>
               </div>
             </div>
@@ -227,7 +239,7 @@
                   <span class="diagram-heading-actions"><span class="diagram-badge"><span class="badge-check">✓</span> Draft · review recommended</span><span class="collapse-indicator" aria-hidden="true"></span></span>
                 </summary>
                 <div class="diagram-details-body" id="diagram-details-body">
-                  <p class="diagram-scroll-hint"><span aria-hidden="true">↓</span> Follow the architecture top to bottom. Scroll horizontally to inspect every service and connection.</p>
+                  <p class="diagram-scroll-hint"><span aria-hidden="true">✥</span> Drag services to reorder or move them between layers, or focus a service and use the arrow keys. Drag the canvas to pan; use the controls or Ctrl/Command + scroll to zoom.</p>
                   <div class="diagram-scroll" id="diagram-container" tabindex="0" role="region" aria-label="Scrollable cloud architecture diagram"></div>
                   <div class="diagram-legend"><span><i class="legend-square legend-edge"></i> Edge &amp; networking</span><span><i class="legend-square legend-compute"></i> Compute</span><span><i class="legend-square legend-data"></i> Data &amp; storage</span><span><i class="legend-square legend-security"></i> Security controls</span><span><i class="legend-square legend-integration"></i> SaaS / partner integration</span><span class="legend-flow"><i></i> Encrypted request / event flow</span></div>
                   <div class="diagram-caption"><span class="caption-spark" aria-hidden="true">✳</span><span id="diagram-caption">Requests pass through edge security to a private network; asynchronous events connect the data tier to secure payment, tax and shipping integrations.</span></div>
@@ -244,7 +256,8 @@
             </div>
           </section>
 
-          <aside class="panel insights-panel" aria-label="Design insights">
+          <aside class="panel insights-panel" id="insights-panel" aria-label="Design insights">
+            <button class="side-panel-toggle insights-panel-toggle" id="insights-panel-toggle" type="button" aria-label="Collapse design insights" aria-controls="insights-panel" aria-expanded="true" title="Collapse design insights"><span aria-hidden="true">›</span><span class="side-panel-label">Design insights</span></button>
             <details class="insights-disclosure" open>
               <summary class="insights-heading collapse-summary" aria-controls="insights-content"><span><span class="insights-spark" aria-hidden="true">✳</span><span class="insights-title">Design insights</span></span><span class="collapse-indicator" aria-hidden="true"></span></summary>
               <div class="insights-content" id="insights-content">
@@ -365,9 +378,9 @@ Events or dates that should reopen this decision.</pre>
       <h3>Features</h3>
       <ul>
         <li>AWS, Azure, and Google Cloud recommendations for web, data, AI/ML, and IoT/event workloads.</li>
-        <li>Editable, top-to-bottom diagrams with network boundaries, integrations, and adjustable layer spacing.</li>
+        <li>Interactive diagrams with drag-and-drop and keyboard repositioning, pan and zoom controls, network boundaries, integrations, and adjustable layer spacing.</li>
         <li>Technical deployment details, security and resilience guidance, planning-level costs, and implementation steps.</li>
-        <li>Browser-local templates, design drafts, appearance settings, and SVG, PNG, JPG, Markdown, PDF, draw.io, and JSON exports.</li>
+        <li>Browser-local templates, design drafts, appearance settings, persistent panel layout preferences, and SVG, PNG, JPG, Markdown, PDF, draw.io, and JSON exports.</li>
       </ul>
       <h3>Important limitations</h3>
       <p>This is a standalone planning tool, not a deployment engine or production architecture approval service. Recommendations, sizing, costs, availability targets, and recovery objectives must be validated against current provider documentation, pricing, quotas, workload tests, and organizational requirements.</p>
@@ -442,9 +455,19 @@ Events or dates that should reopen this decision.</pre>
 
   <dialog class="design-editor-dialog" id="design-editor-dialog" aria-labelledby="design-editor-title">
     <div class="design-editor-header">
-      <div><span class="eyebrow">CUSTOMIZE ARCHITECTURE</span><h2 id="design-editor-title">Architecture design editor</h2><p>Edit services, group them by layer, adjust vertical spacing, and add or remove building blocks. Changes update the diagram and exports.</p></div>
+      <div><span class="eyebrow">CUSTOMIZE ARCHITECTURE</span><h2 id="design-editor-title">Architecture design editor</h2><p>Customize the design title, diagram summary, services, layers, icons, and spacing. Changes update the diagram and exports.</p></div>
       <button class="icon-button" type="button" data-close-design-editor aria-label="Close architecture editor">×</button>
     </div>
+    <section class="design-metadata-editor" aria-labelledby="design-metadata-title">
+      <div class="design-editor-section-heading"><div><h3 id="design-metadata-title">Design details</h3><p>These labels and notes appear in the workspace and exported diagram.</p></div></div>
+      <div class="design-metadata-fields">
+        <label>Design name<input id="editor-design-name" maxlength="80" required></label>
+        <label>Diagram title<input id="editor-diagram-title" maxlength="100" required></label>
+        <label class="design-metadata-wide">Diagram summary<textarea id="editor-diagram-caption" rows="3" maxlength="400"></textarea></label>
+        <label>External integration<input id="editor-integration-name" maxlength="60" required></label>
+        <label>Integration controls<input id="editor-integration-note" maxlength="100" required></label>
+      </div>
+    </section>
     <div class="design-editor-toolbar">
       <span class="design-editor-count" id="design-editor-count">0 components</span>
       <label for="editor-stage-filter">Architecture layer</label>
@@ -460,6 +483,7 @@ Events or dates that should reopen this decision.</pre>
       <div class="design-add-fields">
         <label>Component name<input id="new-component-name" maxlength="60" required placeholder="e.g. Search service"></label>
         <label>Layer<select id="new-component-stage"><option value="clients">Clients</option><option value="edge">Edge &amp; security</option><option value="compute" selected>Application &amp; cache</option><option value="events">Events &amp; integrations</option><option value="data">Data &amp; storage</option><option value="observe">Operations</option></select></label>
+        <label>Icon / type<select id="new-component-kind"><option value="compute">Compute</option><option value="edge">Edge / network</option><option value="security">Security</option><option value="gateway">Gateway</option><option value="cache">Cache</option><option value="events">Events</option><option value="data">Data / storage</option><option value="observe">Operations</option><option value="integration">Integration</option><option value="clients">Client</option></select></label>
         <label class="design-add-wide">Purpose or connection note<input id="new-component-note" maxlength="100" placeholder="What this component does"></label>
       </div>
       <button class="button button-primary" type="submit">Add component</button>
