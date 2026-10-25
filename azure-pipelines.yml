@@ -1,21 +1,104 @@
-# Node.js
-# Build a general Node.js project with npm.
-# Add steps that analyze code, save build artifacts, deploy, and more:
-# https://docs.microsoft.com/azure/devops/pipelines/languages/javascript
-
 trigger:
-- main
+  branches:
+    include:
+      - main
 
 pool:
   vmImage: ubuntu-latest
 
-steps:
-- task: NodeTool@0
-  inputs:
-    versionSpec: '20.x'
-  displayName: 'Install Node.js'
+variables:
+  nodeVersion: '20.x'
+  azureServiceConnection: 'snsrathazarm'
+  webAppName: 'archway'
 
-- script: |
-    npm install
-    npm run build
-  displayName: 'npm install and build'
+stages:
+  - stage: Build
+    displayName: Build and validate
+    jobs:
+      - job: Build
+        displayName: Validate and package Archway Studio
+        steps:
+          - task: NodeTool@0
+            displayName: Install Node.js
+            inputs:
+              versionSpec: $(nodeVersion)
+
+          - script: |
+              node --check app.js
+              node --check server.js
+            displayName: Check JavaScript syntax
+
+          - script: |
+              set -eu
+              PORT=18080 node server.js > /tmp/archway-server.log 2>&1 &
+              server_pid=$!
+              trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+
+              ready=false
+              for attempt in $(seq 1 30); do
+                if response=$(curl --silent --show-error --fail http://127.0.0.1:18080/healthz 2>/dev/null); then
+                  ready=true
+                  break
+                fi
+                sleep 1
+              done
+
+              if [ "$ready" != true ] || [ "$response" != '{"status":"ok"}' ]; then
+                cat /tmp/archway-server.log
+                echo "The application health check failed."
+                exit 1
+              fi
+
+              curl --silent --show-error --fail http://127.0.0.1:18080/ > /dev/null
+            displayName: Smoke test the application
+
+          - task: CopyFiles@2
+            displayName: Stage application files
+            inputs:
+              SourceFolder: $(Build.SourcesDirectory)
+              Contents: |
+                index.html
+                app.js
+                styles.css
+                server.js
+                package.json
+                README.md
+                RELEASE_NOTES.md
+                LICENSE
+                VERSION
+                docs/**
+              TargetFolder: $(Build.ArtifactStagingDirectory)/site
+
+          - task: ArchiveFiles@2
+            displayName: Create deployment package
+            inputs:
+              rootFolderOrFile: $(Build.ArtifactStagingDirectory)/site
+              includeRootFolder: false
+              archiveType: zip
+              archiveFile: $(Build.ArtifactStagingDirectory)/archway.zip
+              replaceExistingArchive: true
+
+          - publish: $(Build.ArtifactStagingDirectory)/archway.zip
+            artifact: drop
+            displayName: Publish deployment package
+
+  - stage: Deploy
+    displayName: Deploy to Azure App Service
+    dependsOn: Build
+    condition: succeeded()
+    jobs:
+      - job: Deploy
+        displayName: Deploy Archway Studio
+        steps:
+          - download: current
+            artifact: drop
+
+          - task: AzureWebApp@1
+            displayName: Deploy to Linux App Service
+            inputs:
+              azureSubscription: $(azureServiceConnection)
+              appType: webAppLinux
+              appName: $(webAppName)
+              package: $(Pipeline.Workspace)/drop/archway.zip
+              runtimeStack: NODE|20-lts
+              startUpCommand: npm start

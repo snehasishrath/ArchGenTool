@@ -63,6 +63,10 @@ Compress-Archive -Path * -DestinationPath ..\archway-deploy.zip -Force
 az webapp deploy --resource-group <resource-group> --name <app-name> --src-path ..\archway-deploy.zip --type zip
 ```
 
+### Azure Pipelines
+
+The root `azure-pipelines.yml` validates the JavaScript, smoke-tests `/healthz`, packages the application files, and deploys the artifact to a Linux App Service running Node.js 20. The pipeline currently expects an Azure Resource Manager service connection named `snsrathazarm` and a Web App named `archway`; update the `azureServiceConnection` and `webAppName` variables in the pipeline to match your Azure DevOps project. No `npm run build` step is needed because this project has no build script or external npm dependencies.
+
 ## Security and usage notes
 
 This tool is a planning aid, not a deployment engine or a production governance system.
